@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>AdminReclamos – Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="estilos/styles.css">
+  
+</head>
+<body>
+  <div class="wrapper">
+    <aside class="sidebar">
+      <div class="brand">
+        <i class="fas fa-car-crash"></i>
+        <span>AdminReclamos</span>
+      </div>
+      <nav class="menu">
+        <a href="index.html" class="active">
+          <i class="fas fa-chart-pie"></i><span>Dashboard</span>
+        </a>
+        <a href="clientes.html">
+          <i class="fas fa-users"></i><span>Clientes</span>
+        </a>
+        <a href="reclamos.html">
+          <i class="fas fa-file-alt"></i><span>Reclamos</span>
+        </a>
+      </nav>
+    </aside>
+
+    <div class="main">
+      <header class="main-header">
+        <h1>Panel de Administración</h1>
+      </header>
+
+    <section class="dashboard-container">
+  <div class="welcome">
+    <h2>¡Bienvenido/a al Panel de Administración!</h2>
+    <p class="sub">Gestioná clientes y reclamos desde el menú de la izquierda.</p>
+  </div>
+
+  <div class="stat-card stat-primary compact">
+    <div class="stat-icon">
+      <i class="fas fa-users"></i>
+    </div>
+    <div class="stat-body">
+      <h3>Clientes registrados</h3>
+      <p class="stat-value" id="total-clientes">0</p>
+    </div>
+    <a href="clientes.html" class="btn-hero solid stat-action">VER CLIENTES</a>
+  </div>
+</section>
+
+
+
+    </div>
+  </div>
+
+  <script src="scripts/admin.js"></script>
+</body>
+</html>

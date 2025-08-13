@@ -1,7 +1,7 @@
-# Ejemplo de variables de entorno (se sube sin valores reales)
+
 .env.example
 
-# Ignorar todos los .env (producción, desarrollo, local, etc.)
+# Ignorar todos los .env
 .env*
 !.env.example
 

@@ -20,16 +20,16 @@ import {
 
 dotenv.config();
 
-const app = express();
+const app       = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 // Pool de conexiones MySQL
 const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  host:            process.env.DB_HOST,
+  user:            process.env.DB_USER,
+  password:        process.env.DB_PASSWORD,
+  database:        process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
 });
@@ -40,9 +40,7 @@ app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: true }));
 
-/**
- * Captura errores de express-validator y devuelve JSON si hay fallos.
- */
+// Captura errores de express-validator
 function handleValidationErrors(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -51,12 +49,9 @@ function handleValidationErrors(req, res, next) {
   next();
 }
 
-// ——— API de AutoReclamo ———
+// ——— API Pública de AutoReclamo ———
 
-/**
- * Endpoint POST /reclamo
- * Valida datos del reclamo, lo guarda y envía un correo de confirmación.
- */
+// Registrar reclamo
 app.post(
   '/reclamo',
   [
@@ -70,20 +65,20 @@ app.post(
     body('lugarChoque').trim().notEmpty(),
     body('provincia').trim().notEmpty(),
     body('localidad').trim().notEmpty(),
-    body('patente').matches(/^([A-Z]{3}\d{3}|[A-Z]{2}\d{3}[A-Z]{2})$/).withMessage('Patente inválida. Formato ABC123 o AB123CD.'),
+    body('patente').matches(/^([A-Z]{3}\d{3}|[A-Z]{2}\d{3}[A-Z]{2})$/),
     body('aseguradora').trim().notEmpty(),
     body('nombreInvolucrado').trim().notEmpty(),
     body('apellidoInvolucrado').trim().notEmpty(),
     body('documentoInvolucrado').isNumeric().isLength({ min: 7, max: 8 }),
     body('aseguradoraInvolucrado').trim().notEmpty(),
-    body('patenteInvolucrado').matches(/^([A-Z]{3}\d{3}|[A-Z]{2}\d{3}[A-Z]{2})$/).withMessage('Patente inválida. Formato ABC123 o AB123CD.'),
+    body('patenteInvolucrado').matches(/^([A-Z]{3}\d{3}|[A-Z]{2}\d{3}[A-Z]{2})$/),
     body('partes').isArray({ min: 1 }),
     body('descripcionAccidente').trim().notEmpty(),
     handleValidationErrors
   ],
   async (req, res) => {
     try {
-      const datos = req.body;
+      const datos  = req.body;
       const codigo = await guardarReclamo(datos);
       await enviarConfirmacion(datos.email, codigo);
       res.json({ mensaje: 'Reclamo registrado. Código enviado.' });
@@ -94,10 +89,7 @@ app.post(
   }
 );
 
-/**
- * Endpoint GET /seguimiento/:codigo
- * Valida el código y devuelve el estado actual del reclamo.
- */
+// Consultar estado de reclamo
 app.get(
   '/seguimiento/:codigo',
   [
@@ -118,10 +110,7 @@ app.get(
   }
 );
 
-/**
- * Endpoint POST /contacto
- * Valida datos del formulario de contacto, lo guarda y envía notificación.
- */
+// Enviar mensaje de contacto
 app.post(
   '/contacto',
   [
@@ -145,61 +134,129 @@ app.post(
   }
 );
 
-// ——— Rutas de Administración (API interna) ———
+// ——— RUTAS DE CLIENTES ———
 
+// Listar todos los clientes
 app.get('/api/clientes', async (req, res) => {
   try {
+    const [rows] = await pool.query('SELECT * FROM clientes')
+    res.json(rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Obtener un cliente por ID
+app.get('/api/clientes/:id', async (req, res) => {
+  try {
     const [rows] = await pool.query(
-      'SELECT id, nombre, apellido, dni, email FROM clientes'
+      'SELECT * FROM clientes WHERE id = ?',
+      [req.params.id]
+    )
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Cliente no encontrado' })
+    }
+    res.json(rows[0])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Actualizar un cliente
+app.put('/api/clientes/:id', async (req, res) => {
+  const { nombre, apellido, dni, telefono, email } = req.body
+  try {
+    await pool.execute(
+      `UPDATE clientes
+         SET nombre = ?, apellido = ?, dni = ?, telefono = ?, email = ?
+       WHERE id = ?`,
+      [nombre, apellido, dni, telefono, email, req.params.id]
+    )
+    res.sendStatus(204)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/clientes/:id con borrado de reclamos asociado
+app.delete('/api/clientes/:id', async (req, res) => {
+  const id = req.params.id;
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // 1) eliminamos reclamos de ese cliente
+    await conn.execute(
+      'DELETE FROM reclamos WHERE cliente_id = ?',
+      [id]
     );
-    res.json(rows);
-  } catch (error) {
-    console.error('Error listando clientes:', error);
-    res.status(500).json({ error: 'Error al listar clientes' });
+
+    // 2) eliminamos el cliente
+    const [result] = await conn.execute(
+      'DELETE FROM clientes WHERE id = ?',
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    await conn.commit();
+    res.sendStatus(204);
+  } catch (err) {
+    await conn.rollback();
+    console.error('Error al eliminar cliente:', err);
+    res.status(500).json({ error: 'Error al eliminar cliente: ' + err.message });
+  } finally {
+    conn.release();
   }
 });
 
+// Listar reclamos de un cliente
 app.get('/api/clientes/:id/reclamos', async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT * FROM reclamos WHERE cliente_id = ?',
       [req.params.id]
-    );
-    res.json(rows);
-  } catch (error) {
-    console.error('Error listando reclamos por cliente:', error);
-    res.status(500).json({ error: 'Error al listar reclamos del cliente' });
+    )
+    res.json(rows)
+  } catch (err) {
+    res.status(500).json({ error: 'Error al listar reclamos del cliente' })
   }
-});
+})
 
+// ——— RUTAS DE RECLAMOS ———
+
+// Listar todos los reclamos
 app.get('/api/reclamos', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM reclamos');
-    res.json(rows);
-  } catch (error) {
-    console.error('Error listando reclamos:', error);
-    res.status(500).json({ error: 'Error al listar reclamos' });
+    const [rows] = await pool.query('SELECT * FROM reclamos')
+    res.json(rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
+// Obtener un reclamo por ID
 app.get('/api/reclamos/:id', async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT * FROM reclamos WHERE id = ?',
       [req.params.id]
-    );
-    if (!rows.length) {
-      return res.status(404).json({ error: 'Reclamo no encontrado' });
+    )
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Reclamo no encontrado' })
     }
-    res.json(rows[0]);
-  } catch (error) {
-    console.error('Error obteniendo reclamo:', error);
-    res.status(500).json({ error: 'Error al obtener reclamo' });
+    res.json(rows[0])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
+// Crear un reclamo
 app.post('/api/reclamos', async (req, res) => {
-  const d = req.body;
+  const d = req.body
   try {
     const [result] = await pool.query(
       `INSERT INTO reclamos
@@ -213,50 +270,89 @@ app.post('/api/reclamos', async (req, res) => {
         d.partes_afectadas, d.descripcion_accidente,
         d.codigo_confirmacion, d.estado
       ]
-    );
-    res.status(201).json({ id: result.insertId });
-  } catch (error) {
-    console.error('Error creando reclamo:', error);
-    res.status(500).json({ error: 'Error al crear reclamo' });
+    )
+    res.status(201).json({ id: result.insertId })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
+// Actualizar un reclamo (con nuevos campos)
 app.put('/api/reclamos/:id', async (req, res) => {
   const d = req.body;
   try {
-    await pool.query(
+    const [result] = await pool.query(
       `UPDATE reclamos SET
-         fecha_incidente=?, hora_incidente=?, direccion=?, provincia=?, ciudad=?,
-         patente_vehiculo=?, compania_seguro=?, partes_afectadas=?, descripcion_accidente=?, estado=?
+         fecha_incidente        = ?,
+         hora_incidente         = ?,
+         direccion              = ?,
+         provincia              = ?,
+         ciudad                 = ?,
+         patente_vehiculo       = ?,
+         compania_seguro        = ?,
+         partes_afectadas       = ?,
+         descripcion_accidente  = ?,
+         estado                 = ?,
+         otro_nombre            = ?,
+         otro_apellido          = ?,
+         otro_dni               = ?,
+         otro_patente           = ?,
+         otro_compania_seguro   = ?
        WHERE id = ?`,
       [
-        d.fecha_incidente, d.hora_incidente, d.direccion,
-        d.provincia, d.ciudad, d.patente_vehiculo, d.compania_seguro,
-        d.partes_afectadas, d.descripcion_accidente, d.estado,
+        d.fecha_incidente,
+        d.hora_incidente,
+        d.direccion,
+        d.provincia,
+        d.ciudad,
+        d.patente_vehiculo,
+        d.compania_seguro,
+        d.partes_afectadas,
+        d.descripcion_accidente,
+        d.estado,
+        d.otro_nombre,
+        d.otro_apellido,
+        d.otro_dni,
+        d.otro_patente,
+        d.otro_compania_seguro,
         req.params.id
       ]
     );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Reclamo no encontrado' });
+    }
     res.sendStatus(204);
-  } catch (error) {
-    console.error('Error actualizando reclamo:', error);
-    res.status(500).json({ error: 'Error al actualizar reclamo' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
+
+// Eliminar un reclamo
 app.delete('/api/reclamos/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM reclamos WHERE id = ?', [req.params.id]);
-    res.sendStatus(204);
-  } catch (error) {
-    console.error('Error eliminando reclamo:', error);
-    res.status(500).json({ error: 'Error al eliminar reclamo' });
+    const [result] = await pool.query(
+      'DELETE FROM reclamos WHERE id = ?',
+      [req.params.id]
+    )
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Reclamo no encontrado' })
+    }
+    res.sendStatus(204)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
-// Sirve el frontend (SPA estática) al final
-app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Inicia el servidor
+
+
+// Servir frontend estático
+app.use(express.static(path.join(__dirname, '../frontend')))
+
+
+// Iniciar el servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);

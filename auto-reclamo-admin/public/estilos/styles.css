@@ -1,0 +1,377 @@
+/* -------------------------------------------------
+   GLOBAL
+-------------------------------------------------*/
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
+
+:root {
+  --color-primario: #000033;
+  --color-secundario: #007ac0;
+  --color-warning: #ffc107;
+  --color-danger: #dc3545;
+
+  /* Versiones claras para fondo de icono */
+  --color-primario-light: rgba(0,122,192,0.1);
+  --color-warning-light: rgba(255,193,7,0.1);
+  --color-danger-light: rgba(220,53,69,0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
+
+/* --- Hero Gradient (sidebar background) --- */
+.sidebar {
+  background: linear-gradient(135deg, rgba(0, 0, 51, 0.9) 0%, rgba(0, 122, 192, 0.8) 100%);
+  color: #fff;
+}
+
+/* -------------------------------------------------
+   LAYOUT
+-------------------------------------------------*/
+.wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* -------------------------------------------------
+   SIDEBAR
+-------------------------------------------------*/
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+}
+.brand i {
+  color: #fff;
+}
+
+.menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  padding: 0.75rem 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  transition: background 0.2s;
+}
+.menu a:hover,
+.menu a.active {
+  background: rgba(255,255,255,0.1);
+}
+.menu a i {
+  width: 1.2rem;
+  text-align: center;
+}
+
+/* -------------------------------------------------
+   HEADER
+-------------------------------------------------*/
+.main-header {
+  background: #fff;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #ddd;
+}
+.main-header h1 {
+  font-size: 1.5rem;
+  color: var(--color-primario);
+}
+
+/* -------------------------------------------------
+   BTN-HERO
+-------------------------------------------------*/
+.btn-hero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  margin: 0 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.btn-hero.solid {
+  background-color: var(--color-primario);
+  color: #fff;
+  border: 2px solid var(--color-primario);
+}
+.btn-hero.outline {
+  background: transparent;
+  color: #fff;
+  border: 2px solid #fff;
+}
+.btn-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+.btn-hero.solid:hover {
+  background: #fff;
+  color: var(--color-primario);
+}
+.btn-hero.outline:hover {
+  background: #fff;
+  color: var(--color-primario);
+}
+.btn-hero.small {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+/* -------------------------------------------------
+   BACK BUTTON
+-------------------------------------------------*/
+.btn-back {
+  font-weight: 500;
+}
+
+/* -------------------------------------------------
+   STATS GRID
+-------------------------------------------------*/
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
+}
+
+/* Tarjetas de stats */
+.stat-card {
+  position: relative;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-left: 5px solid var(--color-primario);
+}
+.stat-card.stat-primary { border-left-color: var(--color-secundario); }
+.stat-card.stat-warning { border-left-color: var(--color-warning); }
+.stat-card.stat-danger  { border-left-color: var(--color-danger); }
+
+.stat-body {
+  padding: 1.5rem;
+}
+.stat-body h3 {
+  margin-bottom: 0.5rem;
+  color: var(--color-primario);
+  font-size: 1.1rem;
+}
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: var(--color-secundario);
+}
+.stat-action {
+  border-radius: 0 0 8px 8px;
+  text-decoration: none; 
+}
+
+/* Icono en stat-card */
+.stat-icon {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stat-primary .stat-icon { background: var(--color-primario-light); color: var(--color-secundario); }
+.stat-warning .stat-icon { background: var(--color-warning-light); color: var(--color-warning); }
+.stat-danger  .stat-icon { background: var(--color-danger-light);  color: var(--color-danger); }
+
+/* Link pequeño */
+.stat-link {
+  margin: 1rem 1.5rem;
+  font-size: 0.85rem;
+  text-decoration: none;
+  color: var(--color-primario);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* -------------------------------------------------
+   CARDS CONTAINER (Clientes/Reclamos)
+-------------------------------------------------*/
+.cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
+  gap: 30px;
+  padding: 2rem;
+}
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  padding: 20px;
+}
+.card h2 {
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+  color: var(--color-primario);
+}
+.card p {
+  margin: 6px 0;
+}
+.buttons {
+  display: flex;
+  justify-content: flex-start;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+/* -------------------------------------------------
+   FORM EDITAR
+-------------------------------------------------*/
+.form-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  display: grid;
+  gap: 16px;
+  max-width: 600px;
+  margin: 2rem auto;
+}
+.form-card .grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.form-card label {
+  font-weight: 600;
+  color: var(--color-primario);
+}
+.form-card input,
+.form-card textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Tabla de Clientes */
+.clients-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2rem 0;
+}
+.clients-table th,
+.clients-table td {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+.clients-table thead th {
+  background: var(--color-primario);
+  color: #fff;
+}
+.clients-table tbody tr:hover {
+  background: #f1f1f1;
+}
+
+/* Acciones en tabla */
+.clients-table td { text-align: left; }
+.clients-table .actions-group {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.clients-table th:nth-child(7),
+.clients-table td:nth-child(7) {
+  width: 1%;
+  white-space: nowrap;
+}
+#tabla-reclamos th:nth-child(6),
+#tabla-reclamos td:nth-child(6) {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* ==== TOAST ==== */
+#toast-stack {
+  position: fixed;
+  right: 16px;
+  top: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toast {
+  min-width: 280px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,.15);
+  border-left: 5px solid var(--color-primario);
+  font-weight: 600;
+  transition: .25s ease;
+}
+.toast.success { border-left-color: #28a745; }
+.toast.error { border-left-color: #dc3545; }
+.toast.info { border-left-color: var(--color-secundario); }
+
+/* --- Dashboard simple --- */
+.dashboard-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.welcome { text-align: center; }
+.welcome h2 { font-size: 1.8rem; color: var(--color-primario); margin-bottom: .25rem; }
+.welcome .sub { color: #556; }
+.stat-card.compact { max-width: 520px; margin: 0 auto; }
+.stat-icon i { font-size: 22px; }
+
+/* Fix solapamiento icono en stat-card compact */
+.stat-card.compact .stat-body { padding-right: 4.5rem; }
+.stat-card.compact .stat-icon {
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stat-card.compact .stat-icon i { font-size: 20px; }
+.stat-card.compact .stat-value { margin-top: 6px; }
