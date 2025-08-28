@@ -6,10 +6,14 @@ const API = {
   clientes:    ()       => `${BASE}/clientes`,
   cliente:     id       => `${BASE}/clientes/${id}`,
   reclamos:    id       => `${BASE}/clientes/${id}/reclamos`,
-  update:      (t, id)  => `${BASE}/${t}/${id}`
+  reclamo:     id       => `${BASE}/reclamos/${id}`,
+  update:      (t, id)  => `${BASE}/${t}/${id}`,
+  comentarios: id       => `${BASE}/reclamos/${id}/comentarios`
 };
 
-// ==== Toast helpers (vanilla) ====
+/* ===========================
+   Toast helpers (vanilla)
+=========================== */
 function ensureToastStack() {
   let stack = document.getElementById('toast-stack');
   if (!stack) {
@@ -34,7 +38,9 @@ function toast(message, type = 'success', ms = 2200) {
   }, ms);
 }
 
-// Helper centralizado por si mañana agregás auth (redirigir en 401)
+/* =========================================
+   Helper fetch JSON + manejo de errores
+========================================= */
 async function apiJson(url, opts = {}) {
   const r = await fetch(url, opts);
   if (r.status === 401) {
@@ -46,47 +52,39 @@ async function apiJson(url, opts = {}) {
     try { msg = (await r.json()).error || (await r.text()); } catch {}
     throw new Error(msg || 'Error');
   }
-  // algunas rutas devuelven 204; devolvemos null en ese caso
   return r.status === 204 ? null : r.json();
 }
 
+/* ===========================
+   Router simple por página
+=========================== */
 document.addEventListener('DOMContentLoaded', () => {
   const page = location.pathname.split('/').pop();
 
-  if (!page || page === 'index.html') {
-    actualizarEstadisticas();
-  }
-  if (page === 'clientes.html') {
-    cargarClientes();
-    enlazarAccionesClientes();   // delegación de eventos
-  }
-  if (page === 'reclamos.html') {
-    cargarReclamos();
-  }
-  if (page === 'editar.html') {
-    cargarFormularioReclamo();
-  }
-  if (page === 'editar_cliente.html') {
-    cargarFormularioCliente();
-  }
+  if (!page || page === 'index.html') {actualizarEstadisticas();}
+  if (page === 'clientes.html') {cargarClientes();enlazarAccionesClientes();}
+  if (page === 'reclamos.html') {cargarReclamos();bindModalComentarios();}
+  if (page === 'editar.html') {cargarFormularioReclamo();}
+  if (page === 'editar_cliente.html') {cargarFormularioCliente();}
 });
 
-// ------------------ Estadísticas ------------------
-
+/* ===========================
+   Dashboard (solo clientes)
+=========================== */
 async function actualizarEstadisticas() {
   try {
     const clientes = await apiJson(API.clientes());
     document.getElementById('total-clientes').textContent =
       Array.isArray(clientes) ? clientes.length : 0;
   } catch (err) {
-    if (typeof toast === 'function') toast('No se pudo cargar el total de clientes', 'error');
+    toast('No se pudo cargar el total de clientes', 'error');
     console.error(err);
   }
 }
 
-
-// ------------------ Clientes ------------------
-
+/* ===========================
+   Clientes (listado + acciones)
+=========================== */
 async function cargarClientes() {
   const tbody = document.getElementById('clients-tbody');
   const list  = await apiJson(API.clientes());
@@ -120,7 +118,6 @@ async function cargarClientes() {
   `).join('');
 }
 
-// Delegación de eventos para los botones de la tabla de clientes
 function enlazarAccionesClientes() {
   const tbody = document.getElementById('clients-tbody');
   if (!tbody) return;
@@ -159,13 +156,11 @@ function enlazarAccionesClientes() {
           } catch (err) {
             toast(err.message || 'No se pudo eliminar', 'error');
           } finally {
-            // reponer estado del botón (si la fila sigue visible)
             btn.disabled = false;
             btn.textContent = oldText;
           }
           break;
         }
-
       }
     } catch (err) {
       toast(err.message || 'Error', 'error');
@@ -173,8 +168,9 @@ function enlazarAccionesClientes() {
   });
 }
 
-// ------------------ Reclamos (sin inline onclick) ------------------
-
+/* ==================================
+   Reclamos (listado + comentarios)
+================================== */
 async function cargarReclamos() {
   const clienteId   = sessionStorage.getItem('clienteId');
   const clienteName = sessionStorage.getItem('clienteName') || 'Cliente';
@@ -184,8 +180,8 @@ async function cargarReclamos() {
     return;
   }
 
-  document.getElementById('titulo-reclamos').textContent =
-    `Reclamos de ${clienteName}`;
+  const title = document.getElementById('titulo-reclamos');
+  if (title) title.textContent = `Reclamos de ${clienteName}`;
 
   const reclamos = await apiJson(API.reclamos(clienteId));
   const tbody    = document.querySelector('#tabla-reclamos tbody');
@@ -198,24 +194,38 @@ async function cargarReclamos() {
       <td>${r.hora_incidente}</td>
       <td>${r.estado}</td>
       <td>
-        <button class="btn-hero solid btn-editar" data-id="${r.id}">
-           Detalles
-        </button>
+        <div class="actions-group">
+          <button class="btn-hero solid small btn-editar" data-id="${r.id}">
+             Detalles
+          </button>
+          <button class="btn-hero solid small btn-comentarios" data-id="${r.id}">
+             Comentarios
+          </button>
+        </div>
       </td>
     </tr>
   `).join('');
 
-  // Linkear todos los botones Detalles
+  // Detalles
   tbody.querySelectorAll('.btn-editar').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
       location.href = `editar.html?id=${id}`;
     });
   });
+
+  // Comentarios (abre modal)
+  tbody.querySelectorAll('.btn-comentarios').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      abrirModalComentarios(id);
+    });
+  });
 }
 
-// ------------------ Editar Reclamo ------------------
-
+/* ===========================
+   Editar Reclamo
+=========================== */
 async function cargarFormularioReclamo() {
   const params = new URLSearchParams(location.search);
   const id     = params.get('id');
@@ -224,7 +234,7 @@ async function cargarFormularioReclamo() {
     return;
   }
 
-  const r = await apiJson(`${BASE}/reclamos/${id}`);
+  const r = await apiJson(API.reclamo(id));
 
   Object.entries(r).forEach(([k, v]) => {
     const el = document.getElementById(k);
@@ -250,8 +260,9 @@ async function cargarFormularioReclamo() {
   });
 }
 
-// ------------------ Editar Cliente ------------------
-
+/* ===========================
+   Editar Cliente
+=========================== */
 async function cargarFormularioCliente() {
   const params = new URLSearchParams(location.search);
   const id     = params.get('id');
@@ -292,4 +303,121 @@ async function cargarFormularioCliente() {
       toast('Error: ' + err.message, 'error');
     }
   });
+}
+
+/* =========================================
+   Comentarios (modal + historial por reclamo)
+========================================= */
+
+// Estado interno del modal (reclamo actual)
+let COM_RECLAMO_ID = null;
+
+function abrirModalComentarios(reclamoId){
+  COM_RECLAMO_ID = reclamoId;
+
+  // limpiar form
+  const autor = document.getElementById('autor-comentario');
+  const texto = document.getElementById('texto-comentario');
+  if (autor) autor.value = '';
+  if (texto) texto.value = '';
+
+  // abrir
+  const overlay = document.getElementById('modal-comentarios');
+  if (overlay) overlay.classList.add('is-open');
+
+  // cargar historial
+  cargarComentarios(reclamoId).catch(err => {
+    toast('No se pudo cargar comentarios: ' + err.message, 'error');
+  });
+}
+
+function cerrarModalComentarios(){
+  const overlay = document.getElementById('modal-comentarios');
+  if (overlay) overlay.classList.remove('is-open');
+  COM_RECLAMO_ID = null;
+}
+
+async function cargarComentarios(reclamoId){
+  // GET /reclamos/:id/comentarios
+  const list = await apiJson(API.comentarios(reclamoId));
+  renderComentarios(list || []);
+}
+
+function renderComentarios(items){
+  const ul = document.getElementById('lista-comentarios');
+  if (!ul) return;
+
+  if (!Array.isArray(items) || !items.length){
+    ul.innerHTML = '<li style="color:#666;">Sin comentarios todavía.</li>';
+    return;
+  }
+  ul.innerHTML = items.map(it => `
+    <li class="comentario-item">
+      <div class="meta">
+        <strong>${it.autor ? escapeHTML(it.autor) : 'Anónimo'}</strong>
+        · <span>${formatearFechaHora(it.creado_en)}</span>
+      </div>
+      <div class="texto">${escapeHTML(it.texto || '')}</div>
+    </li>
+  `).join('');
+}
+
+function formatearFechaHora(iso){
+  try{
+    const d = new Date(iso);
+    return d.toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
+  }catch{ return iso || ''; }
+}
+
+// Evitar XSS al pintar texto libre
+function escapeHTML(s){
+  return (s || '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+// Enlazar controles del modal (una sola vez)
+function bindModalComentarios(){
+  const modal = document.getElementById('modal-comentarios');
+  if (!modal) return;
+
+  const btnClose = document.getElementById('btn-cerrar-modal');
+  if (btnClose) btnClose.addEventListener('click', cerrarModalComentarios);
+
+  // Cerrar con ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('is-open')) cerrarModalComentarios();
+  });
+
+  // Enviar comentario
+  const form = document.getElementById('form-comentario');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!COM_RECLAMO_ID) return;
+
+      const autor = (document.getElementById('autor-comentario')?.value || '').trim();
+      const texto = (document.getElementById('texto-comentario')?.value || '').trim();
+      if (!texto){
+        toast('Escribí un comentario', 'error');
+        return;
+      }
+
+      try{
+        // POST /reclamos/:id/comentarios
+        await apiJson(API.comentarios(COM_RECLAMO_ID), {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ autor, texto })
+        });
+
+        toast('Comentario guardado', 'success');
+        const txt = document.getElementById('texto-comentario');
+        if (txt) txt.value = '';
+        await cargarComentarios(COM_RECLAMO_ID);
+      }catch(err){
+        toast('No se pudo guardar: ' + err.message, 'error');
+      }
+    });
+  }
 }

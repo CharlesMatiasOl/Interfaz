@@ -51,6 +51,38 @@
             </tbody>
           </table>
 
+          <div id="modal-comentarios" class="modal-overlay" aria-hidden="true">
+            <div class="modal">
+              <div class="modal-header">
+                <h3 id="modal-title">Comentarios del Reclamo</h3>
+                <button class="modal-close" id="btn-cerrar-modal" aria-label="Cerrar">&times;</button>
+              </div>
+              <div class="modal-body">
+                <form id="form-comentario">
+                  <div class="form-row">
+                    <label for="autor-comentario">Autor</label>
+                    <input type="text" id="autor-comentario" maxlength="100" placeholder="">
+                  </div>
+                  <div class="form-row">
+                    <label for="texto-comentario">Comentario</label>
+                    <textarea id="texto-comentario" rows="4" maxlength="1000"
+                              placeholder="Ej: Falta llamar a la aseguradora..."></textarea>
+                  </div>
+                  <div style="text-align: right; margin-top: 8px;">
+                    <button type="submit" class="btn-hero solid">Guardar comentario</button>
+                  </div>
+                </form>
+
+                <hr style="margin: 16px 0; opacity:.25;">
+
+                <h4>Historial</h4>
+                <ul id="lista-comentarios" class="comentarios-lista">
+                  <!-- Items inyectados por admin.js -->
+                </ul>
+              </div>
+            </div>
+          </div>
+
       </main>
     </div>
   </div>

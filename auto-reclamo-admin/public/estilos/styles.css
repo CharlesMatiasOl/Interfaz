@@ -375,3 +375,59 @@ body {
 }
 .stat-card.compact .stat-icon i { font-size: 20px; }
 .stat-card.compact .stat-value { margin-top: 6px; }
+
+
+/* ===== Modal Comentarios ===== */
+.modal-overlay{
+  position:fixed; inset:0; display:none; z-index:10000;
+  background:rgba(0,0,0,.4);
+}
+.modal-overlay.is-open{ display:block; }
+
+.modal{
+  width:min(680px, 92vw);
+  margin:8vh auto; background:#fff; border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.2);
+  overflow:hidden;
+}
+.modal-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid #eee;
+}
+.modal-header h3{ margin:0; color:var(--color-primario); }
+.modal-close{
+  background:transparent; border:0; font-size:26px; line-height:1; cursor:pointer;
+}
+.modal-body{ padding:16px; }
+.form-row{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+.form-row input, .form-row textarea{
+  border:1px solid #ccc; border-radius:6px; padding:10px; width:100%;
+}
+.comentarios-lista{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; }
+.comentario-item{
+  border:1px solid #eee; border-radius:8px; padding:10px; background:#fafafa;
+}
+.comentario-item .meta{ font-size:.85rem; color:#666; margin-bottom:6px; }
+
+/* Columna "Acciones" compacta y botones en línea */
+#tabla-reclamos th:last-child, #tabla-reclamos td:last-child{
+  width:1%; white-space:nowrap;
+}
+#tabla-reclamos .actions-group{ display:inline-flex; gap:8px; align-items:center; }
+
+
+.comentarios-lista {
+  max-height: 250px;   /* altura máxima (ajustá según prefieras) */
+  overflow-y: auto;    /* activa scroll vertical */
+  padding-right: 4px;  /* un poquito de espacio para que no tape texto */
+}
+
+.comentario-item {
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+.comentario-item:last-child {
+  border-bottom: none;
+}

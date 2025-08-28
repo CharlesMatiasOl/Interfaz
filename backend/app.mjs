@@ -344,8 +344,47 @@ app.delete('/api/reclamos/:id', async (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+// ====================== COMENTARIOS DE RECLAMOS ======================
 
+// Listar comentarios de un reclamo
+app.get('/api/reclamos/:id/comentarios', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, reclamo_id, autor, texto, creado_en
+         FROM comentarios
+        WHERE reclamo_id = ?
+        ORDER BY creado_en DESC`,
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Error al listar comentarios:', err);
+    res.status(500).json({ error: 'Error al listar comentarios' });
+  }
+});
 
+// Crear un comentario para un reclamo
+app.post(
+  '/api/reclamos/:id/comentarios',
+  [
+    body('texto').trim().isLength({ min: 2, max: 1000 }),
+    body('autor').optional().trim().isLength({ max: 100 }),
+    handleValidationErrors
+  ],
+  async (req, res) => {
+    try {
+      const { texto, autor } = req.body;
+      const [result] = await pool.execute(
+        'INSERT INTO comentarios (reclamo_id, autor, texto) VALUES (?, ?, ?)',
+        [req.params.id, autor || null, texto]
+      );
+      res.status(201).json({ id: result.insertId });
+    } catch (err) {
+      console.error('Error al crear comentario:', err);
+      res.status(500).json({ error: 'Error al crear comentario' });
+    }
+  }
+);
 
 
 // Servir frontend estático
