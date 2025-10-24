@@ -251,3 +251,48 @@ export async function enviarCorreoContacto(datos) {
     throw error;
   }
 }
+
+
+
+// ================== NUEVO EN funciones.mjs ==================
+export async function obtenerEstadisticasReclamos() {
+  const conn = await pool.getConnection();
+  try {
+    // total
+    const [[{ total }]] = await conn.query('SELECT COUNT(*) AS total FROM reclamos');
+
+    // por estado
+    const [rows] = await conn.query(`
+      SELECT estado, COUNT(*) AS cantidad
+      FROM reclamos
+      GROUP BY estado
+    `);
+
+    // Normalizo a 0 si falta alguno
+    const estados = {
+      'Ingresado': 0,
+      'En revisión': 0,
+      'Aprobación': 0,
+      'Reclamación': 0,
+      'Gestión de pago': 0,
+      'Reclamo finalizado': 0,
+    };
+    for (const r of rows) {
+      if (estados.hasOwnProperty(r.estado)) estados[r.estado] = Number(r.cantidad) || 0;
+    }
+
+    return {
+      total: Number(total) || 0,
+      porEstado: {
+        ingresado: estados['Ingresado'],
+        enRevision: estados['En revisión'],
+        aprobacion: estados['Aprobación'],
+        reclamacion: estados['Reclamación'],
+        gestionPago: estados['Gestión de pago'],
+        finalizado: estados['Reclamo finalizado'],
+      }
+    };
+  } finally {
+    conn.release();
+  }
+}

@@ -1,5 +1,5 @@
 // ====================== app.mjs ======================
-// Archivo principal de la aplicación AutoReclamo
+// Archivo principal de la aplicaciÃ³n AutoReclamo
 
 import express from 'express';
 import dotenv from 'dotenv';
@@ -15,7 +15,8 @@ import {
   enviarConfirmacion,
   verificarReclamo,
   guardarMensajeContacto,
-  enviarCorreoContacto
+  enviarCorreoContacto,
+  obtenerEstadisticasReclamos
 } from './funciones.mjs';
 
 dotenv.config();
@@ -49,7 +50,7 @@ function handleValidationErrors(req, res, next) {
   next();
 }
 
-// ——— API Pública de AutoReclamo ———
+// â€”â€”â€” API PÃºblica de AutoReclamo â€”â€”â€”
 
 // Registrar reclamo
 app.post(
@@ -81,7 +82,7 @@ app.post(
       const datos  = req.body;
       const codigo = await guardarReclamo(datos);
       await enviarConfirmacion(datos.email, codigo);
-      res.json({ mensaje: 'Reclamo registrado. Código enviado.' });
+      res.json({ mensaje: 'Reclamo registrado. CÃ³digo enviado.' });
     } catch (error) {
       console.error('Error al registrar reclamo:', error);
       res.status(500).json({ mensaje: 'Error al registrar reclamo.' });
@@ -134,7 +135,7 @@ app.post(
   }
 );
 
-// ——— RUTAS DE CLIENTES ———
+// â€”â€”â€” RUTAS DE CLIENTES â€”â€”â€”
 
 // Listar todos los clientes
 app.get('/api/clientes', async (req, res) => {
@@ -226,7 +227,7 @@ app.get('/api/clientes/:id/reclamos', async (req, res) => {
   }
 })
 
-// ——— RUTAS DE RECLAMOS ———
+// â€”â€”â€” RUTAS DE RECLAMOS â€”â€”â€”
 
 // Listar todos los reclamos
 app.get('/api/reclamos', async (req, res) => {
@@ -387,7 +388,21 @@ app.post(
 );
 
 
-// Servir frontend estático
+// ================== NUEVO ENDPOINT ==================
+// GET /api/estadisticas/reclamos
+app.get('/api/estadisticas/reclamos', async (req, res) => {
+  try {
+    const stats = await obtenerEstadisticasReclamos();
+    res.json(stats);
+  } catch (err) {
+    console.error('Error obteniendo estadísticas:', err);
+    res.status(500).json({ error: 'No se pudieron obtener las estadísticas' });
+  }
+});
+
+
+
+// Servir frontend estÃ¡tico
 app.use(express.static(path.join(__dirname, '../frontend')))
 
 

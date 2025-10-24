@@ -1,5 +1,5 @@
 // admin.js
-console.log('[admin] toasts cargados'); // debug: confirmá que carga este archivo
+console.log('[admin] toasts cargados'); // debug:carga este archivo
 
 const BASE = 'http://localhost:3000/api';
 const API = {
@@ -11,9 +11,35 @@ const API = {
   comentarios: id       => `${BASE}/reclamos/${id}/comentarios`
 };
 
-/* ===========================
-   Toast helpers (vanilla)
-=========================== */
+/* ===========================Toast helpers=========================== */
+
+function getQS(name){
+  const sp = new URLSearchParams(location.search);
+  const v = sp.get(name);
+  return v === null ? '' : v; 
+}
+
+function goBackAfterEdit(){
+  const from   = (getQS('from') || '').toLowerCase();
+  const estado = getQS('estado') || '';
+  const period = getQS('period') || getQS('mes') || '';
+
+  // Base: lista general o por cliente
+  let url = (from === 'all') ? 'reclamos.html?mode=all' : 'reclamos.html';
+
+  // Si veníamos de la general y había filtros, preservarlos
+  if (from === 'all') {
+    const sp = new URLSearchParams();
+    sp.set('mode', 'all');
+    if (estado) sp.set('estado', estado);
+    if (period) sp.set('period', period);
+    url = `reclamos.html?${sp.toString()}`;
+  }
+
+  location.href = url;
+}
+
+
 function ensureToastStack() {
   let stack = document.getElementById('toast-stack');
   if (!stack) {
@@ -38,9 +64,7 @@ function toast(message, type = 'success', ms = 2200) {
   }, ms);
 }
 
-/* =========================================
-   Helper fetch JSON + manejo de errores
-========================================= */
+/* =========================================Helper fetch JSON + manejo de errores========================================= */
 async function apiJson(url, opts = {}) {
   const r = await fetch(url, opts);
   if (r.status === 401) {
@@ -55,36 +79,89 @@ async function apiJson(url, opts = {}) {
   return r.status === 204 ? null : r.json();
 }
 
-/* ===========================
-   Router simple por página
-=========================== */
+/* ===========================Router simple por pagina=========================== */
 document.addEventListener('DOMContentLoaded', () => {
   const page = location.pathname.split('/').pop();
 
   if (!page || page === 'index.html') {actualizarEstadisticas();}
   if (page === 'clientes.html') {cargarClientes();enlazarAccionesClientes();}
-  if (page === 'reclamos.html') {cargarReclamos();bindModalComentarios();}
+  if (page === 'reclamos.html') {routerReclamos();}
   if (page === 'editar.html') {cargarFormularioReclamo();}
   if (page === 'editar_cliente.html') {cargarFormularioCliente();}
 });
 
-/* ===========================
-   Dashboard (solo clientes)
-=========================== */
+
+/* ===========================Dashboard=========================== */
 async function actualizarEstadisticas() {
+  // --- Total clientes ---
   try {
     const clientes = await apiJson(API.clientes());
-    document.getElementById('total-clientes').textContent =
-      Array.isArray(clientes) ? clientes.length : 0;
+    const elClientes = document.getElementById('total-clientes');
+    if (elClientes) elClientes.textContent = Array.isArray(clientes) ? clientes.length : 0;
   } catch (err) {
-    toast('No se pudo cargar el total de clientes', 'error');
+    if (typeof toast === 'function') toast('No se pudo cargar el total de clientes', 'error');
+    console.error(err);
+  }
+
+  // --- Reclamos total + breakdown ---
+  try {
+    const reclamos = await apiJson(`${BASE}/reclamos`);
+    const total = Array.isArray(reclamos) ? reclamos.length : 0;
+
+    const setText = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+    setText('total-reclamos', total);
+
+    // Conteo por estado (normalizado sin tildes)
+    const counts = {
+      'ingresado': 0,
+      'en revision': 0,
+      'aprobacion': 0,
+      'reclamacion': 0,
+      'gestion de pago': 0,
+      'reclamo finalizado': 0,
+      'pendiente': 0
+    };
+
+    // Conteo del mes actual
+    const now = new Date();
+    const curMonth = now.getMonth();
+    const curYear  = now.getFullYear();
+    let delMes = 0;
+
+    for (const r of (reclamos || [])) {
+      const k = normalizarEstado(r.estado);
+      if (k in counts) counts[k]++;
+
+      // Usa el parseFecha GLOBAL
+      const df = parseFecha(r);
+      if (df && df.getMonth() === curMonth && df.getFullYear() === curYear) delMes++;
+    }
+
+    // Pinta resultados
+    setText('total-ingresado',    counts['ingresado']);
+    setText('total-en-revision',  counts['en revision']);
+    setText('total-aprobacion',   counts['aprobacion']);
+    setText('total-reclamacion',  counts['reclamacion']);
+    setText('total-gestion-pago', counts['gestion de pago']);
+    setText('total-finalizado',   counts['reclamo finalizado']);
+    setText('total-mes',          delMes);
+  } catch (err) {
+    if (typeof toast === 'function') toast('No se pudo cargar las estadísticas de reclamos', 'error');
     console.error(err);
   }
 }
 
-/* ===========================
-   Clientes (listado + acciones)
-=========================== */
+
+
+
+
+
+
+
+/* ===========================Clientes=========================== */
 async function cargarClientes() {
   const tbody = document.getElementById('clients-tbody');
   const list  = await apiJson(API.clientes());
@@ -144,10 +221,10 @@ function enlazarAccionesClientes() {
         case 'eliminar': {
           if (!confirm('¿Eliminar este cliente?')) return;
 
-          // deshabilitar botón mientras elimina
+          // deshabilitar mientras elimina
           const oldText = btn.textContent;
           btn.disabled = true;
-          btn.textContent = 'Eliminando…';
+          btn.textContent = 'Eliminando';
 
           try {
             await apiJson(API.cliente(id), { method: 'DELETE' });
@@ -168,9 +245,7 @@ function enlazarAccionesClientes() {
   });
 }
 
-/* ==================================
-   Reclamos (listado + comentarios)
-================================== */
+/* ==================================Reclamos (listado + comentarios)================================== */
 async function cargarReclamos() {
   const clienteId   = sessionStorage.getItem('clienteId');
   const clienteName = sessionStorage.getItem('clienteName') || 'Cliente';
@@ -223,9 +298,7 @@ async function cargarReclamos() {
   });
 }
 
-/* ===========================
-   Editar Reclamo
-=========================== */
+/* ===========================Editar Reclamo=========================== */
 async function cargarFormularioReclamo() {
   const params = new URLSearchParams(location.search);
   const id     = params.get('id');
@@ -253,16 +326,14 @@ async function cargarFormularioReclamo() {
         body: JSON.stringify(data)
       });
       toast('Reclamo actualizado', 'success');
-      setTimeout(() => location.href = 'reclamos.html', 800);
+      setTimeout(() => goBackAfterEdit(), 800);
     } catch (err) {
       toast('Error al actualizar: ' + err.message, 'error');
     }
   });
 }
 
-/* ===========================
-   Editar Cliente
-=========================== */
+/* ===========================Editar Cliente=========================== */
 async function cargarFormularioCliente() {
   const params = new URLSearchParams(location.search);
   const id     = params.get('id');
@@ -305,9 +376,7 @@ async function cargarFormularioCliente() {
   });
 }
 
-/* =========================================
-   Comentarios (modal + historial por reclamo)
-========================================= */
+/* =========================================Comentarios========================================= */
 
 // Estado interno del modal (reclamo actual)
 let COM_RECLAMO_ID = null;
@@ -399,7 +468,7 @@ function bindModalComentarios(){
       const autor = (document.getElementById('autor-comentario')?.value || '').trim();
       const texto = (document.getElementById('texto-comentario')?.value || '').trim();
       if (!texto){
-        toast('Escribí un comentario', 'error');
+        toast('Escribir un comentario', 'error');
         return;
       }
 
@@ -421,3 +490,233 @@ function bindModalComentarios(){
     });
   }
 }
+
+function routerReclamos(){
+  const params     = new URLSearchParams(location.search);
+  const mode       = (params.get('mode') || '').toLowerCase();
+  const estadoQS   = params.get('estado') || '';
+  const periodQS   = (params.get('period') || params.get('mes') || '').toLowerCase();
+
+  const clienteId  = sessionStorage.getItem('clienteId');
+
+  // Si el usuario pidió explícitamente la vista general, olvidamos el contexto por cliente
+  if (mode === 'all') {
+    sessionStorage.removeItem('clienteId');
+  }
+
+  if (mode === 'all' || !clienteId){
+    cargarReclamosGeneral({ estadoQS, periodQS }).catch(err => {
+      console.error(err);
+      if (typeof toast === 'function') toast(err.message || 'No se pudo cargar reclamos', 'error');
+    });
+    if (typeof bindModalComentarios === 'function') bindModalComentarios();
+  } else {
+    if (typeof cargarReclamos === 'function') cargarReclamos();
+    if (typeof bindModalComentarios === 'function') bindModalComentarios();
+  }
+}
+
+
+
+let RECLAMOS_CACHE = [];
+let CLIENTES_MAP   = {};
+
+function normalizarEstado(s) {
+  if (s == null) return '';
+  // a) string básico en minúsculas
+  let x = String(s).trim().toLowerCase();
+
+  // b) quitar tildes/diacríticos (revisión→revision)
+  x = x.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // c) unificar separadores: guiones → espacio, colapsar espacios
+  x = x.replace(/-/g, ' ').replace(/\s+/g, ' ');
+
+  return x;
+}
+
+
+function parseFecha(r){
+  const f = r.fecha_incidente || r.fecha;
+  if (!f) return null;
+  if (typeof f === 'string') {
+    if (f.includes('-')) { // ISO
+      const d = new Date(f);
+      return isNaN(d) ? null : d;
+    }
+    const p = f.split('/');
+    if (p.length === 3) {
+      const d = parseInt(p[0], 10), m = parseInt(p[1], 10), y = parseInt(p[2], 10);
+      const dt = new Date(y, m - 1, d);
+      return isNaN(dt) ? null : dt;
+    }
+  }
+  const dt = new Date(f);
+  return isNaN(dt) ? null : dt;
+}
+
+function isEsteMes(r){
+  const d = parseFecha(r);
+  if (!d) return false;
+  const now = new Date();
+  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+}
+
+async function cargarReclamosGeneral({ estadoQS = '', periodQS = '' } = {}){
+  const title = document.getElementById('titulo-reclamos');
+  if (title) title.textContent = 'Reclamos – Todos';
+
+  ensureBarraFiltros();
+
+  const [reclamos, clientes] = await Promise.all([
+    apiJson(`${BASE}/reclamos`),
+    apiJson(API.clientes())
+  ]);
+
+  RECLAMOS_CACHE = Array.isArray(reclamos) ? reclamos : [];
+
+  CLIENTES_MAP = {};
+  (Array.isArray(clientes) ? clientes : []).forEach(c => {
+    const nombre = [c.nombre, c.apellido].filter(Boolean).join(' ').trim() || (c.razon_social || '');
+    CLIENTES_MAP[c.id] = nombre || `Cliente #${c.id}`;
+  });
+
+  // Preselección desde QS
+  const selEstado  = document.getElementById('filtro-estado');
+  const selPeriodo = document.getElementById('filtro-periodo');
+
+  if (estadoQS && selEstado)  selEstado.value = estadoQS;
+  if (periodQS && selPeriodo) {
+    if (['mes', 'actual', 'este-mes', 'this-month'].includes(periodQS)) selPeriodo.value = 'mes';
+  }
+
+  aplicarYRenderFiltro();
+}
+
+function ensureBarraFiltros(){
+  const tabla = document.getElementById('tabla-reclamos');
+  if (!tabla) return;
+  if (document.getElementById('reclamos-filtros')) return;
+
+  const wrapper = document.createElement('section');
+  wrapper.id = 'reclamos-filtros';
+  wrapper.className = 'filters-bar';
+  wrapper.innerHTML = `
+    <div class="filters">
+  <label for="filtro-estado">Estado</label>
+  <select id="filtro-estado">
+    <option value="">Todos</option>
+    <option value="ingresado">Ingresado</option>
+    <option value="en-revision">En revisión</option>
+    <option value="aprobacion">Aprobación</option>
+    <option value="reclamacion">Reclamación</option>
+    <option value="gestion-de-pago">Gestión de pago</option>
+    <option value="reclamo-finalizado">Reclamo finalizado</option>
+  </select>
+
+  <label for="filtro-periodo">Periodo</label>
+  <select id="filtro-periodo">
+    <option value="">Todos</option>
+    <option value="mes">Este mes</option>
+  </select>
+
+  <button type="button" id="btn-limpiar-filtros" class="btn-hero solid">Limpiar</button>
+</div>
+
+  `;
+  tabla.parentElement.insertBefore(wrapper, tabla);
+
+  const selEstado   = wrapper.querySelector('#filtro-estado');
+  const selPeriodo  = wrapper.querySelector('#filtro-periodo');
+  const btnLimpiar  = wrapper.querySelector('#btn-limpiar-filtros');
+
+  selEstado.addEventListener('change', aplicarYRenderFiltro);
+  selPeriodo.addEventListener('change', aplicarYRenderFiltro);
+  btnLimpiar.addEventListener('click', () => {
+    selEstado.value  = '';
+    selPeriodo.value = '';
+    aplicarYRenderFiltro();
+    const url = new URL(location.href);
+    url.searchParams.delete('estado');
+    url.searchParams.delete('period');
+    url.searchParams.delete('mes');
+    history.replaceState(null, '', url);
+  });
+}
+
+function aplicarYRenderFiltro(){
+  const selEstado  = document.getElementById('filtro-estado');
+  const selPeriodo = document.getElementById('filtro-periodo');
+  const estado  = selEstado ? selEstado.value : '';
+  const periodo = selPeriodo ? selPeriodo.value : '';
+
+  let data = RECLAMOS_CACHE;
+
+  // Filtro por estado
+  if (estado) {
+    const e = normalizarEstado(estado);
+    data = data.filter(r => normalizarEstado(r.estado) === e);
+  }
+
+  // Filtro por periodo
+  if (periodo === 'mes') {
+    data = data.filter(isEsteMes);
+  }
+
+  renderReclamosGeneralRows(data);
+}
+
+function renderReclamosGeneralRows(lista){
+  const tbody = document.querySelector('#tabla-reclamos tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = (lista || []).map(r => {
+    const clienteName = escapeHTML(CLIENTES_MAP[r.cliente_id] || `Cliente #${r.cliente_id || ''}`);
+    const d = parseFecha(r);
+    const fecha = d ? d.toLocaleDateString('es-AR') : '-';
+    const hora   = escapeHTML(r.hora_incidente || r.hora || '-');
+    const estado = escapeHTML(r.estado || '-');
+
+    return `
+      <tr>
+        <td>${r.id}</td>
+        <td>${clienteName}</td>
+        <td>${fecha}</td>
+        <td>${hora}</td>
+        <td>${estado}</td>
+        <td>
+          <div class="actions-group">
+            <button class="btn-hero solid small btn-editar" data-id="${r.id}">Detalles</button>
+            <button class="btn-hero solid small btn-comentarios" data-id="${r.id}">Comentarios</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+ tbody.querySelectorAll('.btn-editar').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.id;
+
+    // Lee filtros actuales del select
+    const estadoSel  = document.getElementById('filtro-estado')?.value || '';
+    const periodoSel = document.getElementById('filtro-periodo')?.value || '';
+
+    const qs = new URLSearchParams();
+    qs.set('id', id);
+    qs.set('from', 'all');          // origen: vista general
+    if (estadoSel)  qs.set('estado', estadoSel);     // preserva estado
+    if (periodoSel) qs.set('period', periodoSel);    // preserva periodo (ej. 'mes')
+
+    location.href = `editar.html?${qs.toString()}`;
+  });
+});
+
+
+  // Comentarios (sin cambios)
+  tbody.querySelectorAll('.btn-comentarios').forEach(btn => {
+    btn.addEventListener('click', () => abrirModalComentarios(btn.dataset.id));
+  });
+}
+
+

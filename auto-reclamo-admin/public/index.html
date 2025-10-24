@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>AdminReclamos – Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Dashboard – AdminReclamos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="estilos/styles.css">
-  
+  <!-- Estilos -->
+  <link rel="stylesheet" href="estilos/styles.css" />
+  <link rel="icon" type="image/png" href="img/ico.png">
 </head>
 <body>
   <div class="wrapper">
+    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="brand">
         <i class="fas fa-car-crash"></i>
@@ -23,37 +25,166 @@
         <a href="clientes.html">
           <i class="fas fa-users"></i><span>Clientes</span>
         </a>
-        <a href="reclamos.html">
+        <a href="reclamos.html?mode=all">
           <i class="fas fa-file-alt"></i><span>Reclamos</span>
         </a>
       </nav>
     </aside>
 
+    <!-- Main -->
     <div class="main">
       <header class="main-header">
         <h1>Panel de Administración</h1>
       </header>
 
-    <section class="dashboard-container">
-  <div class="welcome">
-    <h2>¡Bienvenido/a al Panel de Administración!</h2>
-    <p class="sub">Gestioná clientes y reclamos desde el menú de la izquierda.</p>
-  </div>
-
-  <div class="stat-card stat-primary compact">
-    <div class="stat-icon">
-      <i class="fas fa-users"></i>
-    </div>
-    <div class="stat-body">
-      <h3>Clientes registrados</h3>
-      <p class="stat-value" id="total-clientes">0</p>
-    </div>
-    <a href="clientes.html" class="btn-hero solid stat-action">VER CLIENTES</a>
-  </div>
-</section>
+      <section class="hero-welcome">
+        <div class="hero-welcome__content">
+          <h2>Bienvenido/a a la gestión de reclamos</h2>
+          <p class="sub"></p>
+          </div>
+      </section>
 
 
+      <main class="container">
+        <!-- ====== SECCIÓN 1: RESUMEN ====== -->
+        <section class="section resumen-section">
+          <header class="section-header modern">
+            <span class="eyebrow">Visión general de clientes y volumen de reclamos</span>
+            <h2></h2>
+            <p class="section-sub"></p>
+          </header>
 
+          <section class="cards-grid cards-row resumen">
+            <!-- Clientes -->
+            <article class="card kpi kpi--accent-primary">
+              <div class="card-header">
+                <i class="fas fa-users"></i>
+                <h3>Clientes</h3>
+              </div>
+              <div class="card-body">
+                <span id="total-clientes" class="kpi-value">0</span>
+                <small>Total de clientes registrados</small>
+              </div>
+              <div class="card-actions">
+                <a href="clientes.html" class="btn-hero solid">Ver</a>
+              </div>
+            </article>
+
+            <!-- Total reclamos -->
+            <article class="card kpi kpi--accent-primary">
+              <div class="card-header">
+                <i class="fas fa-file-alt"></i>
+                <h3>Total reclamos</h3>
+              </div>
+              <div class="card-body">
+                <span id="total-reclamos" class="kpi-value">0</span>
+                <small>En el sistema</small>
+              </div>
+              <div class="card-actions">
+                <a href="reclamos.html?mode=all" class="btn-hero solid">Ver</a>
+              </div>
+            </article>
+
+            <!-- Reclamos del mes -->
+            <article class="card kpi kpi--accent-info">
+              <div class="card-header">
+                <i class="fas fa-calendar-alt"></i>
+                <h3>Reclamos del mes</h3>
+              </div>
+              <div class="card-body">
+                <span id="total-mes" class="kpi-value">0</span>
+                <small>Registrados este mes</small>
+              </div>
+              <div class="card-actions">
+                <a href="reclamos.html?mode=all&period=mes" class="btn-hero solid">Ver</a>
+              </div>
+            </article>
+          </section>
+        </section>
+
+        <!-- ====== SECCIÓN 2: ESTADOS ====== -->
+        <section class="section estados-section">
+          <header class="section-header modern">
+            <span class="eyebrow">Visión general de reclamos por cada tipo de estados</span>
+            <h2></h2>
+            <p class="section-sub"></p>
+          </header>
+
+          <section class="cards-grid cards-row estados">
+            <!-- Ingresado -->
+            <article class="card kpi kpi--accent-info">
+              <div class="card-header">
+                <i class="fas fa-inbox"></i>
+                <h3>Ingresado</h3>
+              </div>
+              <div class="card-body">
+                <span id="total-ingresado" class="kpi-value">0</span>
+                <small>Reclamos en estado inicial</small>
+              </div>
+            </article>
+
+            <!-- En revisión -->
+            <article class="card kpi kpi--accent-warning">
+              <div class="card-header">
+                <i class="fas fa-search"></i>
+                <h3>En revisión</h3>
+              </div>
+              <div class="card-body">
+                <span id="total-en-revision" class="kpi-value">0</span>
+                <small>Evaluación en curso</small>
+              </div>
+            </article>
+
+            <!-- Aprobación -->
+            <article class="card kpi kpi--accent-success">
+              <div class="card-header">
+                <i class="fas fa-check-circle"></i>
+                <h3>Aprobación</h3>
+              </div>
+              <div class="card-body">
+                <span id="total-aprobacion" class="kpi-value">0</span>
+                <small>Casos aprobados</small>
+              </div>
+            </article>
+
+            <!-- Reclamación -->
+            <article class="card kpi kpi--accent-danger">
+              <div class="card-header">
+                <i class="fas fa-bullhorn"></i>
+                <h3>Reclamación</h3>
+              </div>
+              <div class="card-body">
+                <span id="total-reclamacion" class="kpi-value">0</span>
+                <small>Casos en negociación</small>
+              </div>
+            </article>
+
+            <!-- Gestión de pago -->
+            <article class="card kpi kpi--accent-warning">
+              <div class="card-header">
+                <i class="fas fa-hand-holding-usd"></i>
+                <h3>Gestión de pago</h3>
+              </div>
+              <div class="card-body">
+                <span id="total-gestion-pago" class="kpi-value">0</span>
+                <small>Pagos en trámite</small>
+              </div>
+            </article>
+
+            <!-- Reclamo finalizado -->
+            <article class="card kpi kpi--accent-success">
+              <div class="card-header">
+                <i class="fas fa-flag-checkered"></i>
+                <h3>Reclamo finalizado</h3>
+              </div>
+              <div class="card-body">
+                <span id="total-finalizado" class="kpi-value">0</span>
+                <small>Cerrados con resolución</small>
+              </div>
+            </article>
+          </section>
+        </section>
+      </main>
     </div>
   </div>
 
