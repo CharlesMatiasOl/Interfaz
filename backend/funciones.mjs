@@ -1,12 +1,13 @@
-// Importación de módulos necesarios
+// ============================ funciones.mjs ============================
+// Capa de acceso a datos (MySQL) y envío de emails (Nodemailer)
+
 import mysql from 'mysql2/promise';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
-// Configuración de variables de entorno
 dotenv.config();
 
-// Configuración de la conexión a la base de datos
+// Pool de MySQL (reutiliza conexiones)
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -17,23 +18,19 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-// ============================Funciones de Reclamo============================//
+// ============================ Reclamo ============================
 
-
-//Genera un código de confirmación aleatorio para el reclamo.
- 
+// Genera código alfanumérico de 6 chars en mayúscula (p.ej. ABC123)
 function generarCodigo() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-//Guarda el reclamo en la base de datos.
-
+// Inserta/recupera cliente, guarda reclamo y devuelve el código de confirmación
 export async function guardarReclamo(datos) {
   try {
-    // Obtiene una conexión del pool
     const connection = await pool.getConnection();
 
-    // Verifica si el cliente ya existe en la base de datos
+    // ¿Existe cliente por DNI?
     const [rows] = await connection.execute(
       'SELECT id FROM clientes WHERE dni = ?',
       [datos.documento]
@@ -41,21 +38,19 @@ export async function guardarReclamo(datos) {
 
     let clienteId;
     if (rows.length > 0) {
-      // Si el cliente existe, obtiene su ID
-      clienteId = rows[0].id;
+      clienteId = rows[0].id;                    // ya existe
     } else {
-      // Si no existe, lo inserta en la tabla 'clientes'
+      // crea cliente
       const [result] = await connection.execute(
         'INSERT INTO clientes (nombre, apellido, dni, telefono, email) VALUES (?, ?, ?, ?, ?)',
         [datos.nombre, datos.apellido, datos.documento, datos.telefono, datos.email]
       );
-      clienteId = result.insertId; // Obtiene el ID del nuevo cliente
+      clienteId = result.insertId;
     }
 
-    // Genera un código de confirmación único para el reclamo
-    const codigoConfirmacion = generarCodigo();
+    const codigoConfirmacion = generarCodigo();   // código único
 
-    // Inserta el reclamo en la tabla 'reclamos'
+    // Inserta reclamo vinculado al cliente
     await connection.execute(
       `INSERT INTO reclamos (
           cliente_id,
@@ -90,17 +85,14 @@ export async function guardarReclamo(datos) {
         datos.documentoInvolucrado,
         datos.patenteInvolucrado,
         datos.aseguradoraInvolucrado,
-        datos.partes.join(', '), // Convierte el array de partes en una cadena
+        datos.partes.join(', '),                 // array → texto
         datos.descripcionAccidente,
         codigoConfirmacion,
-        'Ingresado' // Estado inicial del reclamo
+        'Ingresado'                              // estado inicial
       ]
     );
 
-    // Libera la conexión
     connection.release();
-
-    // Devuelve el código de confirmación generado
     return codigoConfirmacion;
   } catch (error) {
     console.error('Error al guardar el reclamo:', error);
@@ -108,27 +100,23 @@ export async function guardarReclamo(datos) {
   }
 }
 
-//Envía un correo electrónico de confirmación al usuario con el código de reclamo.
-
+// Envía email de confirmación con el código del reclamo
 export async function enviarConfirmacion(email, codigoConfirmacion) {
   try {
-    // Configuración del transportador de correo electrónico
+    // Transporter SMTP (Gmail): usa App Password en EMAIL_PASS
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER, // Correo electrónico del remitente (desde variables de entorno)
-        pass: process.env.EMAIL_PASS, // Contraseña o token de aplicación (desde variables de entorno)
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
-      tls: {
-        rejectUnauthorized: false, // Permite certificados TLS no verificados
-      },
+      tls: { rejectUnauthorized: false }, // tolera certs no verificados
     });
 
-    // Configuración del correo electrónico a enviar
     const mailOptions = {
-      from: `"AutoReclamo" <${process.env.EMAIL_USER}>`, // Remitente
-      to: email, // Destinatario
-      subject: 'Confirmación de Reclamo - AutoReclamo', // Asunto
+      from: `"AutoReclamo" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Confirmación de Reclamo - AutoReclamo',
       html: `
         <p>Gracias por presentar su reclamo en AutoReclamo.</p>
         <p>Su código de reclamo es: <strong>${codigoConfirmacion}</strong></p>
@@ -136,7 +124,6 @@ export async function enviarConfirmacion(email, codigoConfirmacion) {
       `,
     };
 
-    // Envía el correo electrónico
     await transporter.sendMail(mailOptions);
     console.log('Correo de confirmación enviado a:', email);
   } catch (error) {
@@ -145,47 +132,34 @@ export async function enviarConfirmacion(email, codigoConfirmacion) {
   }
 }
 
-// ============================Funciones del Estado del Reclamo============================//
+// ============================ Estado del Reclamo ============================
 
-//Verifica el estado actual de un reclamo basado en el código de confirmación.
-
+// Devuelve el estado por código de confirmación o null si no existe
 export async function verificarReclamo(codigo) {
   try {
-    // Obtiene una conexión del pool
     const connection = await pool.getConnection();
 
-    // Consulta el estado del reclamo en la base de datos
     const [rows] = await connection.execute(
       'SELECT estado FROM reclamos WHERE codigo_confirmacion = ?',
       [codigo]
     );
 
-    // Libera la conexión
     connection.release();
 
-    if (rows.length > 0) {
-      // Si se encuentra el reclamo, devuelve su estado
-      return rows[0].estado;
-    } else {
-      // Si no se encuentra, devuelve null
-      return null;
-    }
+    return rows.length > 0 ? rows[0].estado : null;
   } catch (error) {
     console.error('Error al verificar el reclamo:', error);
     throw error;
   }
 }
 
-// ============================Funciones de Contacto============================//
+// ============================ Contacto ============================
 
-//Guarda el mensaje de contacto en la base de datos.
-
+// Guarda el mensaje de contacto en DB
 export async function guardarMensajeContacto(datos) {
   try {
-    // Obtiene una conexión del pool
     const connection = await pool.getConnection();
 
-    // Inserta el mensaje de contacto en la tabla 'mensajes_contacto'
     await connection.execute(
       `INSERT INTO mensajes_contacto (
           motivo_consulta,
@@ -203,7 +177,6 @@ export async function guardarMensajeContacto(datos) {
       ]
     );
 
-    // Libera la conexión
     connection.release();
     console.log('Mensaje de contacto guardado en la base de datos.');
   } catch (error) {
@@ -212,27 +185,22 @@ export async function guardarMensajeContacto(datos) {
   }
 }
 
-//Envía el mensaje de contacto por correo electrónico al equipo de soporte.
-
+// Envía el contenido del formulario de contacto por email a soporte
 export async function enviarCorreoContacto(datos) {
   try {
-    // Configuración del transportador de correo electrónico
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER, // Correo electrónico del remitente 
-        pass: process.env.EMAIL_PASS, // Contraseña o token de aplicación 
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
-      tls: {
-        rejectUnauthorized: false, // Permite certificados TLS no verificados
-      },
+      tls: { rejectUnauthorized: false },
     });
 
-    // Configuración del correo electrónico a enviar
     const mailOptions = {
-      from: `"AutoReclamo" <${process.env.EMAIL_USER}>`, // Remitente
-      to: process.env.EMAIL_USER, // Destinatario (puede ser el mismo correo del remitente o uno específico para soporte)
-      subject: `Nuevo mensaje de contacto - ${datos.motivoConsulta}`, // Asunto
+      from: `"AutoReclamo" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_USER, // o un correo específico de soporte
+      subject: `Nuevo mensaje de contacto - ${datos.motivoConsulta}`,
       html: `
         <p>Has recibido un nuevo mensaje de contacto:</p>
         <p><strong>Nombre:</strong> ${datos.nombre} ${datos.apellidos}</p>
@@ -243,7 +211,6 @@ export async function enviarCorreoContacto(datos) {
       `,
     };
 
-    // Envía el correo electrónico
     await transporter.sendMail(mailOptions);
     console.log('Correo de contacto enviado.');
   } catch (error) {
@@ -252,23 +219,23 @@ export async function enviarCorreoContacto(datos) {
   }
 }
 
+// ============================ Estadísticas ============================
 
-
-// ================== NUEVO EN funciones.mjs ==================
+// Devuelve total de reclamos y conteo por estado (normalizado)
 export async function obtenerEstadisticasReclamos() {
   const conn = await pool.getConnection();
   try {
     // total
     const [[{ total }]] = await conn.query('SELECT COUNT(*) AS total FROM reclamos');
 
-    // por estado
+    // por estado (agrupado)
     const [rows] = await conn.query(`
       SELECT estado, COUNT(*) AS cantidad
       FROM reclamos
       GROUP BY estado
     `);
 
-    // Normalizo a 0 si falta alguno
+    // mapa base (rellena 0 si falta)
     const estados = {
       'Ingresado': 0,
       'En revisión': 0,
@@ -278,18 +245,20 @@ export async function obtenerEstadisticasReclamos() {
       'Reclamo finalizado': 0,
     };
     for (const r of rows) {
-      if (estados.hasOwnProperty(r.estado)) estados[r.estado] = Number(r.cantidad) || 0;
+      if (estados.hasOwnProperty(r.estado)) {
+        estados[r.estado] = Number(r.cantidad) || 0;
+      }
     }
 
     return {
       total: Number(total) || 0,
       porEstado: {
-        ingresado: estados['Ingresado'],
-        enRevision: estados['En revisión'],
-        aprobacion: estados['Aprobación'],
+        ingresado:   estados['Ingresado'],
+        enRevision:  estados['En revisión'],
+        aprobacion:  estados['Aprobación'],
         reclamacion: estados['Reclamación'],
         gestionPago: estados['Gestión de pago'],
-        finalizado: estados['Reclamo finalizado'],
+        finalizado:  estados['Reclamo finalizado'],
       }
     };
   } finally {

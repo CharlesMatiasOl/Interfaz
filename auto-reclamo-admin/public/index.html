@@ -4,21 +4,21 @@
   <meta charset="UTF-8" />
   <title>Dashboard – AdminReclamos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Estilos -->
   <link rel="stylesheet" href="estilos/styles.css" />
   <link rel="icon" type="image/png" href="img/ico.png">
 </head>
 <body>
+  
   <div class="wrapper">
-    <!-- Sidebar -->
+    <!-- ===== Sidebar de navegación ===== -->
     <aside class="sidebar">
       <div class="brand">
         <i class="fas fa-car-crash"></i>
         <span>AdminReclamos</span>
       </div>
       <nav class="menu">
+        <!-- Marca la ruta activa con .active -->
         <a href="index.html" class="active">
           <i class="fas fa-chart-pie"></i><span>Dashboard</span>
         </a>
@@ -31,31 +31,31 @@
       </nav>
     </aside>
 
-    <!-- Main -->
+    <!-- ===== Contenido principal ===== -->
     <div class="main">
       <header class="main-header">
         <h1>Panel de Administración</h1>
       </header>
 
+      <!-- Bienvenida / hero del admin -->
       <section class="hero-welcome">
         <div class="hero-welcome__content">
           <h2>Bienvenido/a a la gestión de reclamos</h2>
-          <p class="sub"></p>
-          </div>
+          <p class="sub"></p> <!-- Subtítulo opcional (se puede llenar por JS) -->
+        </div>
       </section>
 
-
       <main class="container">
-        <!-- ====== SECCIÓN 1: RESUMEN ====== -->
+        <!-- ====== SECCIÓN 1 ====== -->
         <section class="section resumen-section">
           <header class="section-header modern">
             <span class="eyebrow">Visión general de clientes y volumen de reclamos</span>
-            <h2></h2>
-            <p class="section-sub"></p>
+            <h2></h2> 
+            <p class="section-sub"></p> 
           </header>
 
           <section class="cards-grid cards-row resumen">
-            <!-- Clientes -->
+            <!-- Tarjeta: total de clientes -->
             <article class="card kpi kpi--accent-primary">
               <div class="card-header">
                 <i class="fas fa-users"></i>
@@ -70,7 +70,7 @@
               </div>
             </article>
 
-            <!-- Total reclamos -->
+            <!-- Tarjeta: total de reclamos -->
             <article class="card kpi kpi--accent-primary">
               <div class="card-header">
                 <i class="fas fa-file-alt"></i>
@@ -85,7 +85,7 @@
               </div>
             </article>
 
-            <!-- Reclamos del mes -->
+            <!-- Tarjeta: reclamos del mes -->
             <article class="card kpi kpi--accent-info">
               <div class="card-header">
                 <i class="fas fa-calendar-alt"></i>
@@ -102,7 +102,7 @@
           </section>
         </section>
 
-        <!-- ====== SECCIÓN 2: ESTADOS ====== -->
+        <!-- ====== SECCIÓN 2: por estado ====== -->
         <section class="section estados-section">
           <header class="section-header modern">
             <span class="eyebrow">Visión general de reclamos por cada tipo de estados</span>
@@ -171,7 +171,7 @@
               </div>
             </article>
 
-            <!-- Reclamo finalizado -->
+            <!-- Finalizado -->
             <article class="card kpi kpi--accent-success">
               <div class="card-header">
                 <i class="fas fa-flag-checkered"></i>
@@ -188,6 +188,7 @@
     </div>
   </div>
 
+  <!-- Lógica del dashboard  -->
   <script src="scripts/admin.js"></script>
 </body>
 </html>

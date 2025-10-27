@@ -4,23 +4,23 @@
   <meta charset="UTF-8">
   <title>Dashboard – Clientes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- FontAwesome -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-  >
-  
+
+  <!-- Iconos (FontAwesome via CDN) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="estilos/styles.css">
   <link rel="icon" type="image/png" href="img/ico.png">
+
 </head>
 <body>
   <div class="wrapper">
-    <!-- Sidebar -->
+    <!-- Sidebar de navegación -->
     <aside class="sidebar">
       <div class="brand">
         <i class="fas fa-car-crash"></i>
         <span>AdminReclamos</span>
       </div>
+
+      <!-- Menú lateral -->
       <nav class="menu">
         <a href="index.html">
           <i class="fas fa-chart-pie"></i><span>Dashboard</span>
@@ -34,15 +34,19 @@
       </nav>
     </aside>
 
-    <!-- Main -->
+    <!-- Contenido principal -->
     <div class="main">
+      
       <header class="main-header">
         <h1>Gestión de Clientes</h1>
+        
         <button onclick="location.href='index.html'" class="btn-hero solid">
           <i class=""></i> Inicio
         </button>
       </header>
+
       <main class="container">
+        <!-- Tabla de clientes  -->
         <table class="clients-table">
           <thead>
             <tr>
@@ -52,17 +56,18 @@
               <th>DNI</th>
               <th>Teléfono</th>
               <th>Email</th>
-              <th>Acciones</th>
+              <th>Acciones</th> 
             </tr>
           </thead>
           <tbody id="clients-tbody">
-            <!-- Las filas serán inyectadas por admin.js -->
+            <!-- Filas inyectadas por scripts/admin.js -->
           </tbody>
         </table>
       </main>
     </div>
   </div>
 
+  <!-- Lógica de administración -->
   <script src="scripts/admin.js"></script>
 </body>
 </html>

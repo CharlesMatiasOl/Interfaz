@@ -1,5 +1,5 @@
-// admin.js
-console.log('[admin] toasts cargados'); // debug:carga este archivo
+/* ------------------------ ADMIN.JS – Bootstrap y constantes ------------------------ */
+console.log('[admin] toasts cargados'); // debug: confirma que el archivo se cargó
 
 const BASE = 'http://localhost:3000/api';
 const API = {
@@ -11,14 +11,14 @@ const API = {
   comentarios: id       => `${BASE}/reclamos/${id}/comentarios`
 };
 
-/* ===========================Toast helpers=========================== */
-
+/* ------------------------ UTIL – QueryString y navegación de retorno ------------------------ */
 function getQS(name){
   const sp = new URLSearchParams(location.search);
   const v = sp.get(name);
-  return v === null ? '' : v; 
+  return v === null ? '' : v;
 }
 
+/* Vuelve a la pantalla de reclamos correcta tras editar (conserva filtros si venías de "todos") */
 function goBackAfterEdit(){
   const from   = (getQS('from') || '').toLowerCase();
   const estado = getQS('estado') || '';
@@ -27,7 +27,7 @@ function goBackAfterEdit(){
   // Base: lista general o por cliente
   let url = (from === 'all') ? 'reclamos.html?mode=all' : 'reclamos.html';
 
-  // Si veníamos de la general y había filtros, preservarlos
+  // Si venías de la general y había filtros, se preservan
   if (from === 'all') {
     const sp = new URLSearchParams();
     sp.set('mode', 'all');
@@ -39,7 +39,8 @@ function goBackAfterEdit(){
   location.href = url;
 }
 
-
+/* ------------------------ TOASTS – Helpers de notificaciones ------------------------ */
+/* Asegura el contenedor de toasts y lo crea si no existe */
 function ensureToastStack() {
   let stack = document.getElementById('toast-stack');
   if (!stack) {
@@ -49,6 +50,8 @@ function ensureToastStack() {
   }
   return stack;
 }
+
+/* Muestra un toast (success|error|info) con autodesaparición */
 function toast(message, type = 'success', ms = 2200) {
   const stack = ensureToastStack();
   const el = document.createElement('div');
@@ -64,11 +67,11 @@ function toast(message, type = 'success', ms = 2200) {
   }, ms);
 }
 
-/* =========================================Helper fetch JSON + manejo de errores========================================= */
+/* ------------------------ FETCH – Helper JSON con manejo de errores ------------------------ */
 async function apiJson(url, opts = {}) {
   const r = await fetch(url, opts);
   if (r.status === 401) {
-    // location.href = 'login.html';
+    
     throw new Error('No autorizado');
   }
   if (!r.ok) {
@@ -76,24 +79,24 @@ async function apiJson(url, opts = {}) {
     try { msg = (await r.json()).error || (await r.text()); } catch {}
     throw new Error(msg || 'Error');
   }
+  
   return r.status === 204 ? null : r.json();
 }
 
-/* ===========================Router simple por pagina=========================== */
+/* ------------------------ ROUTER – Arranque por página ------------------------ */
 document.addEventListener('DOMContentLoaded', () => {
   const page = location.pathname.split('/').pop();
 
-  if (!page || page === 'index.html') {actualizarEstadisticas();}
-  if (page === 'clientes.html') {cargarClientes();enlazarAccionesClientes();}
-  if (page === 'reclamos.html') {routerReclamos();}
-  if (page === 'editar.html') {cargarFormularioReclamo();}
-  if (page === 'editar_cliente.html') {cargarFormularioCliente();}
+  if (!page || page === 'index.html') { actualizarEstadisticas(); }
+  if (page === 'clientes.html')       { cargarClientes(); enlazarAccionesClientes(); }
+  if (page === 'reclamos.html')       { routerReclamos(); }
+  if (page === 'editar.html')         { cargarFormularioReclamo(); }
+  if (page === 'editar_cliente.html') { cargarFormularioCliente(); }
 });
 
-
-/* ===========================Dashboard=========================== */
+/* ------------------------ DASHBOARD – KPIs y conteos ------------------------ */
 async function actualizarEstadisticas() {
-  // --- Total clientes ---
+  /* Total de clientes */
   try {
     const clientes = await apiJson(API.clientes());
     const elClientes = document.getElementById('total-clientes');
@@ -103,7 +106,7 @@ async function actualizarEstadisticas() {
     console.error(err);
   }
 
-  // --- Reclamos total + breakdown ---
+  /* Total reclamos y desglose por estado + reclamos del mes */
   try {
     const reclamos = await apiJson(`${BASE}/reclamos`);
     const total = Array.isArray(reclamos) ? reclamos.length : 0;
@@ -114,7 +117,7 @@ async function actualizarEstadisticas() {
     };
     setText('total-reclamos', total);
 
-    // Conteo por estado (normalizado sin tildes)
+    // Conteo por estado (normalizado sin tildes/guiones)
     const counts = {
       'ingresado': 0,
       'en revision': 0,
@@ -135,12 +138,12 @@ async function actualizarEstadisticas() {
       const k = normalizarEstado(r.estado);
       if (k in counts) counts[k]++;
 
-      // Usa el parseFecha GLOBAL
+      
       const df = parseFecha(r);
       if (df && df.getMonth() === curMonth && df.getFullYear() === curYear) delMes++;
     }
 
-    // Pinta resultados
+    
     setText('total-ingresado',    counts['ingresado']);
     setText('total-en-revision',  counts['en revision']);
     setText('total-aprobacion',   counts['aprobacion']);
@@ -154,18 +157,12 @@ async function actualizarEstadisticas() {
   }
 }
 
-
-
-
-
-
-
-
-/* ===========================Clientes=========================== */
+/* ------------------------ CLIENTES – Listado y acciones ------------------------ */
 async function cargarClientes() {
   const tbody = document.getElementById('clients-tbody');
   const list  = await apiJson(API.clientes());
 
+  // Renderiza filas
   tbody.innerHTML = list.map(c => `
     <tr>
       <td>${c.id}</td>
@@ -195,6 +192,7 @@ async function cargarClientes() {
   `).join('');
 }
 
+/* Delegación de eventos para las acciones de la tabla de clientes */
 function enlazarAccionesClientes() {
   const tbody = document.getElementById('clients-tbody');
   if (!tbody) return;
@@ -209,6 +207,7 @@ function enlazarAccionesClientes() {
     try {
       switch (btn.dataset.action) {
         case 'reclamos':
+          // Guarda contexto y navega a reclamos del cliente
           sessionStorage.setItem('clienteId', id);
           sessionStorage.setItem('clienteName', name);
           location.href = 'reclamos.html';
@@ -221,7 +220,7 @@ function enlazarAccionesClientes() {
         case 'eliminar': {
           if (!confirm('¿Eliminar este cliente?')) return;
 
-          // deshabilitar mientras elimina
+          // Deshabilita botón mientras elimina
           const oldText = btn.textContent;
           btn.disabled = true;
           btn.textContent = 'Eliminando';
@@ -229,7 +228,7 @@ function enlazarAccionesClientes() {
           try {
             await apiJson(API.cliente(id), { method: 'DELETE' });
             toast('Cliente eliminado', 'success');
-            await cargarClientes(); // recarga la tabla
+            await cargarClientes(); // recarga tabla
           } catch (err) {
             toast(err.message || 'No se pudo eliminar', 'error');
           } finally {
@@ -245,19 +244,22 @@ function enlazarAccionesClientes() {
   });
 }
 
-/* ==================================Reclamos (listado + comentarios)================================== */
+/* ------------------------ RECLAMOS – Lista (por cliente) + Modal comentarios ------------------------ */
 async function cargarReclamos() {
   const clienteId   = sessionStorage.getItem('clienteId');
   const clienteName = sessionStorage.getItem('clienteName') || 'Cliente';
 
+  // Si no hay contexto, volvemos a clientes
   if (!clienteId) {
     location.href = 'clientes.html';
     return;
   }
 
+  // Título contextual
   const title = document.getElementById('titulo-reclamos');
   if (title) title.textContent = `Reclamos de ${clienteName}`;
 
+  // Carga y render
   const reclamos = await apiJson(API.reclamos(clienteId));
   const tbody    = document.querySelector('#tabla-reclamos tbody');
 
@@ -281,7 +283,7 @@ async function cargarReclamos() {
     </tr>
   `).join('');
 
-  // Detalles
+  // Navegar a edición
   tbody.querySelectorAll('.btn-editar').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
@@ -289,7 +291,7 @@ async function cargarReclamos() {
     });
   });
 
-  // Comentarios (abre modal)
+  // Abrir modal de comentarios
   tbody.querySelectorAll('.btn-comentarios').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
@@ -298,7 +300,7 @@ async function cargarReclamos() {
   });
 }
 
-/* ===========================Editar Reclamo=========================== */
+/* ------------------------ RECLAMOS – Formulario de edición ------------------------ */
 async function cargarFormularioReclamo() {
   const params = new URLSearchParams(location.search);
   const id     = params.get('id');
@@ -307,16 +309,16 @@ async function cargarFormularioReclamo() {
     return;
   }
 
+  // Carga datos y los vuelca a inputs por id coincidente
   const r = await apiJson(API.reclamo(id));
-
   Object.entries(r).forEach(([k, v]) => {
     const el = document.getElementById(k);
     if (el) el.value = v;
   });
 
+  // Guardado
   document.getElementById('form-editar').addEventListener('submit', async e => {
     e.preventDefault();
-
     const data = Object.fromEntries(new FormData(e.target));
 
     try {
@@ -333,7 +335,7 @@ async function cargarFormularioReclamo() {
   });
 }
 
-/* ===========================Editar Cliente=========================== */
+/* ------------------------ CLIENTE – Formulario de edición ------------------------ */
 async function cargarFormularioCliente() {
   const params = new URLSearchParams(location.search);
   const id     = params.get('id');
@@ -342,8 +344,8 @@ async function cargarFormularioCliente() {
     return;
   }
 
+  // Carga y setea en el form
   const c = await apiJson(API.cliente(id));
-
   document.getElementById('id').value       = c.id;
   document.getElementById('nombre').value   = c.nombre;
   document.getElementById('apellido').value = c.apellido;
@@ -351,6 +353,7 @@ async function cargarFormularioCliente() {
   document.getElementById('telefono').value = c.telefono || '';
   document.getElementById('email').value    = c.email;
 
+  // Guardado
   document.getElementById('form-editar-cliente').addEventListener('submit', async e => {
     e.preventDefault();
 
@@ -376,11 +379,11 @@ async function cargarFormularioCliente() {
   });
 }
 
-/* =========================================Comentarios========================================= */
+/* ------------------------ COMENTARIOS – Estado, modal y CRUD ------------------------ */
 
-// Estado interno del modal (reclamo actual)
 let COM_RECLAMO_ID = null;
 
+/* Abre modal, limpia form y carga historial */
 function abrirModalComentarios(reclamoId){
   COM_RECLAMO_ID = reclamoId;
 
@@ -390,7 +393,7 @@ function abrirModalComentarios(reclamoId){
   if (autor) autor.value = '';
   if (texto) texto.value = '';
 
-  // abrir
+  // abrir modal
   const overlay = document.getElementById('modal-comentarios');
   if (overlay) overlay.classList.add('is-open');
 
@@ -400,18 +403,20 @@ function abrirModalComentarios(reclamoId){
   });
 }
 
+/* Cierra modal y limpia estado */
 function cerrarModalComentarios(){
   const overlay = document.getElementById('modal-comentarios');
   if (overlay) overlay.classList.remove('is-open');
   COM_RECLAMO_ID = null;
 }
 
+/* GET historial de comentarios de un reclamo */
 async function cargarComentarios(reclamoId){
-  // GET /reclamos/:id/comentarios
   const list = await apiJson(API.comentarios(reclamoId));
   renderComentarios(list || []);
 }
 
+/* Pinta la lista de comentarios dentro del modal */
 function renderComentarios(items){
   const ul = document.getElementById('lista-comentarios');
   if (!ul) return;
@@ -431,6 +436,7 @@ function renderComentarios(items){
   `).join('');
 }
 
+/* Fecha/hora legible para la meta del comentario */
 function formatearFechaHora(iso){
   try{
     const d = new Date(iso);
@@ -438,14 +444,14 @@ function formatearFechaHora(iso){
   }catch{ return iso || ''; }
 }
 
-// Evitar XSS al pintar texto libre
+/* Sanitiza texto libre para evitar XSS */
 function escapeHTML(s){
   return (s || '').replace(/[&<>"']/g, m => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[m]));
 }
 
-// Enlazar controles del modal (una sola vez)
+/* Enlaza eventos del modal  */
 function bindModalComentarios(){
   const modal = document.getElementById('modal-comentarios');
   if (!modal) return;
@@ -458,7 +464,7 @@ function bindModalComentarios(){
     if (e.key === 'Escape' && modal.classList.contains('is-open')) cerrarModalComentarios();
   });
 
-  // Enviar comentario
+  // Enviar comentario (POST)
   const form = document.getElementById('form-comentario');
   if (form) {
     form.addEventListener('submit', async (e) => {
@@ -473,7 +479,6 @@ function bindModalComentarios(){
       }
 
       try{
-        // POST /reclamos/:id/comentarios
         await apiJson(API.comentarios(COM_RECLAMO_ID), {
           method: 'POST',
           headers: { 'Content-Type':'application/json' },
@@ -491,6 +496,7 @@ function bindModalComentarios(){
   }
 }
 
+/* ------------------------ RECLAMOS Router y filtros ------------------------ */
 function routerReclamos(){
   const params     = new URLSearchParams(location.search);
   const mode       = (params.get('mode') || '').toLowerCase();
@@ -509,41 +515,37 @@ function routerReclamos(){
       console.error(err);
       if (typeof toast === 'function') toast(err.message || 'No se pudo cargar reclamos', 'error');
     });
-    if (typeof bindModalComentarios === 'function') bindModalComentarios();
+    bindModalComentarios();
   } else {
-    if (typeof cargarReclamos === 'function') cargarReclamos();
-    if (typeof bindModalComentarios === 'function') bindModalComentarios();
+    cargarReclamos();
+    bindModalComentarios();
   }
 }
 
-
-
+/* Cache local de reclamos y mapa de clientes para pintar rápido */
 let RECLAMOS_CACHE = [];
 let CLIENTES_MAP   = {};
 
+/* Normaliza valores de estado para comparar  */
 function normalizarEstado(s) {
   if (s == null) return '';
-  // a) string básico en minúsculas
   let x = String(s).trim().toLowerCase();
-
-  // b) quitar tildes/diacríticos (revisión→revision)
-  x = x.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-  // c) unificar separadores: guiones → espacio, colapsar espacios
-  x = x.replace(/-/g, ' ').replace(/\s+/g, ' ');
-
+  x = x.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); 
+  x = x.replace(/-/g, ' ').replace(/\s+/g, ' ');         
   return x;
 }
 
-
+/* Intenta parsear una fecha del reclamo en distintos formatos */
 function parseFecha(r){
   const f = r.fecha_incidente || r.fecha;
   if (!f) return null;
   if (typeof f === 'string') {
-    if (f.includes('-')) { // ISO
+    // ISO (YYYY-MM-DD...)
+    if (f.includes('-')) {
       const d = new Date(f);
       return isNaN(d) ? null : d;
     }
+    // dd/mm/yyyy
     const p = f.split('/');
     if (p.length === 3) {
       const d = parseInt(p[0], 10), m = parseInt(p[1], 10), y = parseInt(p[2], 10);
@@ -555,6 +557,7 @@ function parseFecha(r){
   return isNaN(dt) ? null : dt;
 }
 
+/* True si la fecha del reclamo está en el mes/año actual */
 function isEsteMes(r){
   const d = parseFecha(r);
   if (!d) return false;
@@ -562,17 +565,20 @@ function isEsteMes(r){
   return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
 }
 
+/* Carga la vista general de reclamos con barra de filtros */
 async function cargarReclamosGeneral({ estadoQS = '', periodQS = '' } = {}){
   const title = document.getElementById('titulo-reclamos');
   if (title) title.textContent = 'Reclamos – Todos';
 
   ensureBarraFiltros();
 
+  // Carga reclamos + clientes en paralelo
   const [reclamos, clientes] = await Promise.all([
     apiJson(`${BASE}/reclamos`),
     apiJson(API.clientes())
   ]);
 
+  // Cachea y arma mapa de cliente_id → nombre
   RECLAMOS_CACHE = Array.isArray(reclamos) ? reclamos : [];
 
   CLIENTES_MAP = {};
@@ -593,6 +599,7 @@ async function cargarReclamosGeneral({ estadoQS = '', periodQS = '' } = {}){
   aplicarYRenderFiltro();
 }
 
+/* Inserta la barra de filtros sobre la tabla si no existe */
 function ensureBarraFiltros(){
   const tabla = document.getElementById('tabla-reclamos');
   if (!tabla) return;
@@ -603,29 +610,29 @@ function ensureBarraFiltros(){
   wrapper.className = 'filters-bar';
   wrapper.innerHTML = `
     <div class="filters">
-  <label for="filtro-estado">Estado</label>
-  <select id="filtro-estado">
-    <option value="">Todos</option>
-    <option value="ingresado">Ingresado</option>
-    <option value="en-revision">En revisión</option>
-    <option value="aprobacion">Aprobación</option>
-    <option value="reclamacion">Reclamación</option>
-    <option value="gestion-de-pago">Gestión de pago</option>
-    <option value="reclamo-finalizado">Reclamo finalizado</option>
-  </select>
+      <label for="filtro-estado">Estado</label>
+      <select id="filtro-estado">
+        <option value="">Todos</option>
+        <option value="ingresado">Ingresado</option>
+        <option value="en-revision">En revisión</option>
+        <option value="aprobacion">Aprobación</option>
+        <option value="reclamacion">Reclamación</option>
+        <option value="gestion-de-pago">Gestión de pago</option>
+        <option value="reclamo-finalizado">Reclamo finalizado</option>
+      </select>
 
-  <label for="filtro-periodo">Periodo</label>
-  <select id="filtro-periodo">
-    <option value="">Todos</option>
-    <option value="mes">Este mes</option>
-  </select>
+      <label for="filtro-periodo">Periodo</label>
+      <select id="filtro-periodo">
+        <option value="">Todos</option>
+        <option value="mes">Este mes</option>
+      </select>
 
-  <button type="button" id="btn-limpiar-filtros" class="btn-hero solid">Limpiar</button>
-</div>
-
+      <button type="button" id="btn-limpiar-filtros" class="btn-hero solid">Limpiar</button>
+    </div>
   `;
   tabla.parentElement.insertBefore(wrapper, tabla);
 
+  // Eventos de filtros
   const selEstado   = wrapper.querySelector('#filtro-estado');
   const selPeriodo  = wrapper.querySelector('#filtro-periodo');
   const btnLimpiar  = wrapper.querySelector('#btn-limpiar-filtros');
@@ -636,6 +643,7 @@ function ensureBarraFiltros(){
     selEstado.value  = '';
     selPeriodo.value = '';
     aplicarYRenderFiltro();
+    // Limpia QS visibles
     const url = new URL(location.href);
     url.searchParams.delete('estado');
     url.searchParams.delete('period');
@@ -644,6 +652,7 @@ function ensureBarraFiltros(){
   });
 }
 
+/* Aplica filtros seleccionados y vuelve a renderizar filas */
 function aplicarYRenderFiltro(){
   const selEstado  = document.getElementById('filtro-estado');
   const selPeriodo = document.getElementById('filtro-periodo');
@@ -652,13 +661,13 @@ function aplicarYRenderFiltro(){
 
   let data = RECLAMOS_CACHE;
 
-  // Filtro por estado
+  // Filtro por estado (normalizado)
   if (estado) {
     const e = normalizarEstado(estado);
     data = data.filter(r => normalizarEstado(r.estado) === e);
   }
 
-  // Filtro por periodo
+  // Filtro por periodo (este mes)
   if (periodo === 'mes') {
     data = data.filter(isEsteMes);
   }
@@ -666,6 +675,7 @@ function aplicarYRenderFiltro(){
   renderReclamosGeneralRows(data);
 }
 
+/* Dibuja las filas de la tabla en la vista general y enlaza acciones */
 function renderReclamosGeneralRows(lista){
   const tbody = document.querySelector('#tabla-reclamos tbody');
   if (!tbody) return;
@@ -694,29 +704,27 @@ function renderReclamosGeneralRows(lista){
     `;
   }).join('');
 
- tbody.querySelectorAll('.btn-editar').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const id = btn.dataset.id;
+  // Detalles
+  tbody.querySelectorAll('.btn-editar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
 
-    // Lee filtros actuales del select
-    const estadoSel  = document.getElementById('filtro-estado')?.value || '';
-    const periodoSel = document.getElementById('filtro-periodo')?.value || '';
+      // Lee filtros actuales del select
+      const estadoSel  = document.getElementById('filtro-estado')?.value || '';
+      const periodoSel = document.getElementById('filtro-periodo')?.value || '';
 
-    const qs = new URLSearchParams();
-    qs.set('id', id);
-    qs.set('from', 'all');          // origen: vista general
-    if (estadoSel)  qs.set('estado', estadoSel);     // preserva estado
-    if (periodoSel) qs.set('period', periodoSel);    // preserva periodo (ej. 'mes')
+      const qs = new URLSearchParams();
+      qs.set('id', id);
+      qs.set('from', 'all');          // origen: vista general
+      if (estadoSel)  qs.set('estado', estadoSel);     // preserva estado
+      if (periodoSel) qs.set('period', periodoSel);    // preserva periodo (ej. 'mes')
 
-    location.href = `editar.html?${qs.toString()}`;
+      location.href = `editar.html?${qs.toString()}`;
+    });
   });
-});
 
-
-  // Comentarios (sin cambios)
+  // Comentarios → abre modal
   tbody.querySelectorAll('.btn-comentarios').forEach(btn => {
     btn.addEventListener('click', () => abrirModalComentarios(btn.dataset.id));
   });
 }
-
-

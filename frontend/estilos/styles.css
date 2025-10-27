@@ -1,12 +1,12 @@
-/* -------------------------------------------------GOOGLE FONT & TIPOGRAFÍA GLOBAL----------------------------------------------------*/
+/* ------------------------ GOOGLE FONT & TIPOGRAFÍA GLOBAL ------------------------ */
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
 
-/* Aplica Poppins a todo excepto a los iconos de FontAwesome */
+/* Usa Poppins en todo menos iconos FA */
 html, body, *:not(.fa):not(.fa-solid):not(.fa-regular):not(.fa-light):not(.fa-thin):not(.fab):not(.fas):not(.far):not(.fal) {
   font-family: "Poppins", sans-serif !important;
 }
 
-/* Restaurar fuente de FontAwesome para los iconos */
+/* Restablece fuentes para FontAwesome */
 .fa, .fa-solid, .fa-regular, .fa-light, .fa-thin {
   font-family: "Font Awesome 6 Free" !important;
   font-weight: 900 !important;
@@ -16,7 +16,7 @@ html, body, *:not(.fa):not(.fa-solid):not(.fa-regular):not(.fa-light):not(.fa-th
   font-weight: 400 !important;
 }
 
-/* ----------------------------------------------------VARIABLES Y ESTILOS GENERALES----------------------------------------------------*/
+/* ------------------------ VARIABLES Y RESETEO BÁSICO ------------------------ */
 :root {
   --color-primario: #000033;
   --color-secundario: #007ac0;
@@ -33,7 +33,7 @@ html, body {
 body {
   background-color: #f2f2f2;
   color: var(--color-texto);
-  display: flex;
+  display: flex;           
   flex-direction: column;
 }
 
@@ -45,7 +45,7 @@ body {
   box-sizing: border-box;
 }
 
-/* ----------------------------------------------------------------HEADER------------------------------------------------------------------*/
+/* ------------------------ HEADER ------------------------ */
 header {
   background-color: var(--color-primario);
   color: #fff;
@@ -56,7 +56,7 @@ header .container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
+  flex-wrap: wrap; 
 }
 header .logo img {
   height: 60px;
@@ -74,49 +74,27 @@ header nav ul li a {
   font-weight: 500;
   transition: color 0.3s ease;
   position: relative;
-  overflow: hidden;
+  overflow: hidden; 
 }
 header nav ul li a:hover,
 header nav ul li a.active {
   color: var(--color-secundario);
 }
 
-/* —— Sliding underline animado —— totalmente descartavel 
-header nav ul li a::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background-color: var(--color-secundario);
-  transition: width 0.3s ease;
-}
-header nav ul li a:hover::after,
-header nav ul li a.active::after {
-  width: 100%;
-}
-
+/* Subrayado animado desactivado 
+header nav ul li a::after 
 */
 
-/* —— Quitar efecto persistente al hacer focus en enlaces del nav (analizar para ve se é necesario no projeto)
-header nav ul li a:focus {
-  outline: none;
-  color: #fff;
-}
-header nav ul li a:focus::after {
-  width: 0 !important;
-}
-
+/* Reset de focus en nav desactivado 
+header nav ul li a:focus 
 */
 
-/* ---------------------------------------------------------------------HERO CENTRAL----------------------------------------------------------*/
-
+/* ------------------------ HERO ------------------------ */
 .hero {
-  /* degradado de colores */
-  background: 
+  
+  background:
     linear-gradient(to bottom, #000033 0%, #007ac0 100%);
-    /*url('../img/hero.jpg');*/
+    /* url('../img/hero.jpg'); */
   background-repeat: no-repeat;
   background-size: cover;
   background-position: 20% 30%;
@@ -128,7 +106,7 @@ header nav ul li a:focus::after {
   display: flex;
   align-items: center;
   gap: 40px;
-  flex-wrap: wrap;
+  flex-wrap: wrap;  
 }
 .hero-image {
   width: 50%;
@@ -155,13 +133,12 @@ header nav ul li a:focus::after {
   background: #fff;
 }
 
-
-/* ---------------------------------------------------------------BOTONES (global)----------------------------------------------------------*/
+/* ------------------------ BOTONES (global) ------------------------ */
 .btn {
   display: inline-block;
-  padding: 12px 20px;        
+  padding: 12px 20px;
   margin: 10px;
-  border-radius: 30px;       
+  border-radius: 30px;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-align: center;
@@ -170,31 +147,29 @@ header nav ul li a:focus::after {
   color: #fff;
   transition: all 0.3s ease;
   cursor: pointer;
-  min-width: 200px;          
+  min-width: 200px; 
 }
 
-/* Variante */
+/* Variante outline para fondo oscuro */
 .btn-outline {
   background: transparent;
   border: 2px solid #fff;
   color: #fff;
 }
-
 .btn-outline:hover {
   background: #fff;
   color: var(--color-primario);
 }
 
-/* Efecto “elevarse”*/
+/* Hover con elevación */
 .btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* -----------------------------------------------Estilos Generales para Títulos y Texto--------------------------------------------------------- */
-
+/* ------------------------ TIPOGRAFÍA Y ESPACIADOS GENERALES ------------------------ */
 main {
-  flex: 1;
+  flex: 1;             
   padding: 40px 0;
 }
 
@@ -203,19 +178,16 @@ h1 {
   margin-bottom: 20px;
   color: var(--color-primario);
 }
-
 h2 {
   font-size: 28px;
   margin-bottom: 15px;
   color: var(--color-primario);
 }
-
 h3 {
   font-size: 24px;
   margin-bottom: 10px;
   color: var(--color-primario);
 }
-
 label {
   display: block;
   margin-bottom: 5px;
@@ -224,8 +196,7 @@ label {
   font-size: 14px;
 }
 
-/* ----------------------------------------------------------- Estilos para HTML Reclamos ---------------------------------------------------------- */
-
+/* ------------------------ FORM: Reclamos ------------------------ */
 .form-group {
   margin-bottom: 20px;
 }
@@ -236,7 +207,7 @@ label {
 .form-group input[type="time"],
 .form-group select,
 .form-group textarea {
-  width: 40%;
+  width: 40%;            
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -250,42 +221,14 @@ label {
 }
 
 
-
-
-
-/* Botones antigos en el Formulario de Reclamo mudei para o estilo novo
-.buttons {
-  display: flex;
-  justify-content: flex-start;
-  gap: 10px;
-  margin-top: 20px;
-}
-.buttons button {
-  padding: 10px 20px;
-  border: none;
-  background-color: var(--color-primario);
-  color: #fff;
-  cursor: pointer;
-  border-radius: 5px;
-  transition: background-color 0.3s ease;
-}
-.buttons button:hover {
-  background-color: #001a33;
-}
-
-*/
-
-
-
-
+/* Errores inline */
 .error-message {
   color: red;
   font-size: 12px;
-  display: none;
+  display: none; 
 }
 
-/* ------------------------------------------------------ Estilos para Estado del Reclamo HTML -------------------------------------------------------- */
-
+/* ------------------------ TRACKER de estado (seguimiento) ------------------------ */
 .progress-tracker {
   display: flex;
   justify-content: space-between;
@@ -315,6 +258,7 @@ label {
   font-size: 0.9em;
   color: #666;
 }
+/* línea de conexión entre pasos */
 .progress-tracker .step::before {
   content: '';
   position: absolute;
@@ -326,16 +270,13 @@ label {
   z-index: -1;
 }
 .progress-tracker .step:first-child::before {
-  content: none;
+  content: none; 
 }
 .progress-tracker .step.active::before {
   background-color: var(--color-secundario);
 }
 
-
-
-/* ----------------------------------------------------------------Estilos para Contacto HTML----------------------------------------------------------- */
-
+/* ------------------------ CONTACTO ------------------------ */
 .form-contacto .form-group {
   margin-bottom: 20px;
 }
@@ -343,7 +284,7 @@ label {
 .form-contacto input[type="email"],
 .form-contacto textarea,
 .form-contacto select {
-  width: 100%;
+  width: 100%;         
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -356,7 +297,7 @@ label {
   font-size: 18px;
 }
 
-/* Mensajes de Éxito y Error en Contacto */
+/* Mensajes Contacto (colores) */
 #mensajeContacto .exito {
   color: #000033; font-weight: bold;
 }
@@ -364,21 +305,16 @@ label {
   color: rgb(255, 0, 0); font-weight: bold;
 }
 
-
-
-/* -------------------------------------------------------------------------FOOTER-----------------------------------------------------------------------*/
-
+/* ------------------------ FOOTER ------------------------ */
 footer {
-  background: 
+  background:
     linear-gradient(135deg, rgba(0, 0, 51, 0.9) 0%, rgba(0, 122, 192, 0.8) 100%);
   min-height: 30vh;
   display: flex;
   align-items: center;
   padding: 0;
   color: white;
-
 }
-
 .footer-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
@@ -398,10 +334,7 @@ footer {
 }
 .social-icons a:hover { color: var(--color-secundario); }
 
-
-
-/* ----------------------------------------------------------------------BOTÓN WHATSAPP------------------------------------------------------------*/
-
+/* ------------------------ BOTÓN WHATSAPP flotante ------------------------ */
 .whatsapp-float {
   position: fixed; bottom: 40px; right: 40px;
   width:60px; height:60px; background-color:#25d366;
@@ -413,14 +346,10 @@ footer {
 }
 .whatsapp-float:hover { background-color:#128c7e; }
 
-
-
-
-/* ------------------------------------------------------MEDIA QUERIES & SMOOTH SCROLL--------------------------------------------------------------------*/
-
+/* ------------------------ MEDIA QUERIES + SCROLL SUAVE ------------------------ */
 @media (max-width:768px) {
   .hero-content { flex-direction:column; }
-  .hero-image, .hero-text { width:100%; }
+  .hero-image, .hero-text { width:100%; } 
 }
 @media (max-width:600px) {
   .container { width:100%; padding:0 10px; }
@@ -429,37 +358,20 @@ footer {
 }
 html { scroll-behavior:smooth; }
 
+/* Mejoras de legibilidad 
+.info-seccion .grid-3 p 
+*/
 
-
-
-
-/* ------------------------------------------------- MEJORAR LEGIBILIDAD DE LAS DESCRIPCIONES --------------------------------------------------------------
-
-.info-seccion .grid-3 p {
-  margin-top: 12px; line-height: 1.6; color: #555; max-width: 300px;
-}*/
-
-
-
-
-/* -------------------------------------------------SEPARACIÓN ENTRE SECCIONES-------------------------------------------------*/
-/*#como-funciona { padding-bottom: 80px; }
+/* Separación entre secciones 
+#como-funciona { padding-bottom: 80px; }
 #beneficios   { padding-top:    80px; }
 */
 
+/* Outline accesible 
+a:focus, button:focus, input:focus 
+*/
 
-
-/* Mantener outline accesible fuera del nav 
-a:focus, button:focus, input:focus {
-  outline: 2px solid var(--color-secundario);
-  outline-offset: 2px;
-}*/
-
-
-
-
-
-/* ---------------------------------------------------------------BOTONES ESTILO HERO-------------------------------------------------*/
+/* ------------------------ BOTONES ESTILO HERO ------------------------ */
 .btn-hero {
   display: inline-flex;
   align-items: center;
@@ -474,14 +386,14 @@ a:focus, button:focus, input:focus {
   cursor: pointer;
 }
 
-/* Botón sólido */
+/* Variante sólida */
 .btn-hero.solid {
   background-color: var(--color-primario);
   color: #fff;
   border: 2px solid var(--color-primario);
 }
 
-/* Botón outline */
+/* Variante outline (hero oscuro) */
 .btn-hero.outline {
   background: transparent;
   color: #fff;
@@ -494,22 +406,22 @@ a:focus, button:focus, input:focus {
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
 }
 
-/* Hover variante solid: invertimos colores */
+/* Hover solid invertido */
 .btn-hero.solid:hover {
   background: #fff;
   color: var(--color-primario);
 }
 
-/* Hover variante outline */
+/* Hover outline invertido */
 .btn-hero.outline:hover {
   background: #fff;
   color: var(--color-primario);
 }
 
-
+/* Contenedor para botones de formularios */
 .buttons {
   display: flex;
-  justify-content: flex-start; 
-  gap: 30px;               
+  justify-content: flex-start;
+  gap: 30px;
   margin-top: 20px;
 }

@@ -1,5 +1,5 @@
 // ====================== app.mjs ======================
-// Archivo principal de la aplicaciÃ³n AutoReclamo
+// App principal de AutoReclamo 
 
 import express from 'express';
 import dotenv from 'dotenv';
@@ -21,27 +21,27 @@ import {
 
 dotenv.config();
 
-const app       = express();
+const app        = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-// Pool de conexiones MySQL
+// Pool MySQL (conexiones)
 const pool = mysql.createPool({
-  host:            process.env.DB_HOST,
-  user:            process.env.DB_USER,
-  password:        process.env.DB_PASSWORD,
-  database:        process.env.DB_NAME,
+  host:              process.env.DB_HOST,
+  user:              process.env.DB_USER,
+  password:          process.env.DB_PASSWORD,
+  database:          process.env.DB_NAME,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit:   10,
 });
 
-// Middlewares globales
+// Middlewares globales (seguridad + CORS + body parsers)
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: true }));
 
-// Captura errores de express-validator
+// Helper: devuelve 400 si hay errores de validación
 function handleValidationErrors(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -50,9 +50,9 @@ function handleValidationErrors(req, res, next) {
   next();
 }
 
-// â€”â€”â€” API PÃºblica de AutoReclamo â€”â€”â€”
+// ——— API pública ———
 
-// Registrar reclamo
+// POST /reclamo -> valida datos, guarda reclamo y envía email de confirmación
 app.post(
   '/reclamo',
   [
@@ -80,9 +80,9 @@ app.post(
   async (req, res) => {
     try {
       const datos  = req.body;
-      const codigo = await guardarReclamo(datos);
-      await enviarConfirmacion(datos.email, codigo);
-      res.json({ mensaje: 'Reclamo registrado. CÃ³digo enviado.' });
+      const codigo = await guardarReclamo(datos);           // inserta en DB y devuelve código
+      await enviarConfirmacion(datos.email, codigo);        // envía email de confirmación
+      res.json({ mensaje: 'Reclamo registrado. Código enviado.' });
     } catch (error) {
       console.error('Error al registrar reclamo:', error);
       res.status(500).json({ mensaje: 'Error al registrar reclamo.' });
@@ -90,7 +90,7 @@ app.post(
   }
 );
 
-// Consultar estado de reclamo
+// GET /seguimiento/:codigo -> devuelve estado del reclamo
 app.get(
   '/seguimiento/:codigo',
   [
@@ -99,7 +99,7 @@ app.get(
   ],
   async (req, res) => {
     try {
-      const estado = await verificarReclamo(req.params.codigo);
+      const estado = await verificarReclamo(req.params.codigo); // consulta en DB
       if (!estado) {
         return res.status(404).json({ mensaje: 'Reclamo no encontrado.' });
       }
@@ -111,7 +111,7 @@ app.get(
   }
 );
 
-// Enviar mensaje de contacto
+// POST /contacto -> guarda mensaje y envía correo
 app.post(
   '/contacto',
   [
@@ -125,8 +125,8 @@ app.post(
   async (req, res) => {
     try {
       const datos = req.body;
-      await guardarMensajeContacto(datos);
-      await enviarCorreoContacto(datos);
+      await guardarMensajeContacto(datos);  // persiste en DB
+      await enviarCorreoContacto(datos);    // envía notificación/email
       res.json({ mensaje: 'Mensaje recibido.' });
     } catch (error) {
       console.error('Error al procesar contacto:', error);
@@ -135,68 +135,59 @@ app.post(
   }
 );
 
-// â€”â€”â€” RUTAS DE CLIENTES â€”â€”â€”
+// ——— Rutas de CLIENTES  ———
 
-// Listar todos los clientes
+// GET /api/clientes -> lista todos
 app.get('/api/clientes', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM clientes')
-    res.json(rows)
+    const [rows] = await pool.query('SELECT * FROM clientes');
+    res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-})
+});
 
-// Obtener un cliente por ID
+// GET /api/clientes/:id -> un cliente por ID
 app.get('/api/clientes/:id', async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT * FROM clientes WHERE id = ?',
       [req.params.id]
-    )
+    );
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'Cliente no encontrado' })
+      return res.status(404).json({ error: 'Cliente no encontrado' });
     }
-    res.json(rows[0])
+    res.json(rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-})
+});
 
-// Actualizar un cliente
+// PUT /api/clientes/:id -> actualiza cliente
 app.put('/api/clientes/:id', async (req, res) => {
-  const { nombre, apellido, dni, telefono, email } = req.body
+  const { nombre, apellido, dni, telefono, email } = req.body;
   try {
     await pool.execute(
       `UPDATE clientes
          SET nombre = ?, apellido = ?, dni = ?, telefono = ?, email = ?
        WHERE id = ?`,
       [nombre, apellido, dni, telefono, email, req.params.id]
-    )
-    res.sendStatus(204)
+    );
+    res.sendStatus(204);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-})
+});
 
-// DELETE /api/clientes/:id con borrado de reclamos asociado
+// DELETE /api/clientes/:id -> borra cliente y sus reclamos 
 app.delete('/api/clientes/:id', async (req, res) => {
   const id = req.params.id;
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
-    // 1) eliminamos reclamos de ese cliente
-    await conn.execute(
-      'DELETE FROM reclamos WHERE cliente_id = ?',
-      [id]
-    );
-
-    // 2) eliminamos el cliente
-    const [result] = await conn.execute(
-      'DELETE FROM clientes WHERE id = ?',
-      [id]
-    );
+    await conn.execute('DELETE FROM reclamos WHERE cliente_id = ?', [id]); 
+    const [result] = await conn.execute('DELETE FROM clientes WHERE id = ?', [id]);
 
     if (result.affectedRows === 0) {
       await conn.rollback();
@@ -214,50 +205,50 @@ app.delete('/api/clientes/:id', async (req, res) => {
   }
 });
 
-// Listar reclamos de un cliente
+// GET /api/clientes/:id/reclamos -> lista reclamos del cliente
 app.get('/api/clientes/:id/reclamos', async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT * FROM reclamos WHERE cliente_id = ?',
       [req.params.id]
-    )
-    res.json(rows)
+    );
+    res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: 'Error al listar reclamos del cliente' })
+    res.status(500).json({ error: 'Error al listar reclamos del cliente' });
   }
-})
+});
 
-// â€”â€”â€” RUTAS DE RECLAMOS â€”â€”â€”
+// ——— Rutas de RECLAMOS  ———
 
-// Listar todos los reclamos
+// GET /api/reclamos -> lista todos
 app.get('/api/reclamos', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM reclamos')
-    res.json(rows)
+    const [rows] = await pool.query('SELECT * FROM reclamos');
+    res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-})
+});
 
-// Obtener un reclamo por ID
+// GET /api/reclamos/:id -> un reclamo por ID
 app.get('/api/reclamos/:id', async (req, res) => {
   try {
     const [rows] = await pool.query(
       'SELECT * FROM reclamos WHERE id = ?',
       [req.params.id]
-    )
+    );
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'Reclamo no encontrado' })
+      return res.status(404).json({ error: 'Reclamo no encontrado' });
     }
-    res.json(rows[0])
+    res.json(rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-})
+});
 
-// Crear un reclamo
+// POST /api/reclamos -> inserta reclamo 
 app.post('/api/reclamos', async (req, res) => {
-  const d = req.body
+  const d = req.body;
   try {
     const [result] = await pool.query(
       `INSERT INTO reclamos
@@ -271,14 +262,14 @@ app.post('/api/reclamos', async (req, res) => {
         d.partes_afectadas, d.descripcion_accidente,
         d.codigo_confirmacion, d.estado
       ]
-    )
-    res.status(201).json({ id: result.insertId })
+    );
+    res.status(201).json({ id: result.insertId });
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-})
+});
 
-// Actualizar un reclamo (con nuevos campos)
+// PUT /api/reclamos/:id -> actualiza campos del reclamo
 app.put('/api/reclamos/:id', async (req, res) => {
   const d = req.body;
   try {
@@ -329,25 +320,25 @@ app.put('/api/reclamos/:id', async (req, res) => {
   }
 });
 
-
-// Eliminar un reclamo
+// DELETE /api/reclamos/:id -> elimina reclamo
 app.delete('/api/reclamos/:id', async (req, res) => {
   try {
     const [result] = await pool.query(
       'DELETE FROM reclamos WHERE id = ?',
       [req.params.id]
-    )
+    );
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Reclamo no encontrado' })
+      return res.status(404).json({ error: 'Reclamo no encontrado' });
     }
-    res.sendStatus(204)
+    res.sendStatus(204);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: err.message });
   }
-})
-// ====================== COMENTARIOS DE RECLAMOS ======================
+});
 
-// Listar comentarios de un reclamo
+// ——— Comentarios de reclamos ———
+
+// GET /api/reclamos/:id/comentarios -> lista comentarios (más reciente primero)
 app.get('/api/reclamos/:id/comentarios', async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -364,7 +355,7 @@ app.get('/api/reclamos/:id/comentarios', async (req, res) => {
   }
 });
 
-// Crear un comentario para un reclamo
+// POST /api/reclamos/:id/comentarios -> crea comentario en un reclamo
 app.post(
   '/api/reclamos/:id/comentarios',
   [
@@ -387,9 +378,8 @@ app.post(
   }
 );
 
-
-// ================== NUEVO ENDPOINT ==================
-// GET /api/estadisticas/reclamos
+// ——— Estadísticas ———
+// GET /api/estadisticas/reclamos -> devuelve métricas
 app.get('/api/estadisticas/reclamos', async (req, res) => {
   try {
     const stats = await obtenerEstadisticasReclamos();
@@ -400,13 +390,10 @@ app.get('/api/estadisticas/reclamos', async (req, res) => {
   }
 });
 
+// Servir frontend estático (carpeta /frontend)
+app.use(express.static(path.join(__dirname, '../frontend')));
 
-
-// Servir frontend estÃ¡tico
-app.use(express.static(path.join(__dirname, '../frontend')))
-
-
-// Iniciar el servidor
+// Inicio del servidor 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
